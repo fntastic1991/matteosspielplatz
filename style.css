@@ -10,83 +10,11 @@
 }
 
 /* ========================================
-   Hochformat-Warnung (Portrait Mode)
+   Hochformat-Warnung (Portrait Mode) - DEAKTIVIERT
    ======================================== */
 
 .orientation-warning {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #3b82f6, #8b5cf6);
-    display: none;
-    align-items: center;
-    justify-content: center;
-    z-index: 10000;
-    flex-direction: column;
-}
-
-@media (orientation: portrait) {
-    .orientation-warning {
-        display: flex !important;
-    }
-    
-    body > *:not(.orientation-warning) {
-        display: none !important;
-    }
-}
-
-.orientation-content {
-    text-align: center;
-    padding: 2rem;
-    color: white;
-    animation: fadeIn 0.6s ease-out;
-}
-
-.rotate-icon {
-    font-size: 6rem;
-    margin-bottom: 2rem;
-    animation: bounce 2s ease-in-out infinite;
-}
-
-.orientation-title {
-    font-size: 2.5rem;
-    font-weight: 800;
-    margin-bottom: 1rem;
-    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-}
-
-.orientation-text {
-    font-size: 1.5rem;
-    font-weight: 600;
-    margin-bottom: 2rem;
-    opacity: 0.95;
-}
-
-.phone-rotate-animation {
-    margin-top: 2rem;
-}
-
-.phone-icon {
-    font-size: 8rem;
-    display: inline-block;
-    animation: rotatePhone 3s ease-in-out infinite;
-}
-
-@keyframes rotatePhone {
-    0%, 100% {
-        transform: rotate(0deg);
-    }
-    25% {
-        transform: rotate(-15deg);
-    }
-    50% {
-        transform: rotate(90deg) scale(1.1);
-    }
-    75% {
-        transform: rotate(105deg);
-    }
+    display: none !important;
 }
 
 body {
