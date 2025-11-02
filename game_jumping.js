@@ -630,12 +630,15 @@ export class JumpingGame {
             this.ctx.fillText(`Beste: ${this.highScore}`, 20, 70);
         }
         
-        // Anleitung
-        if (this.score === 0 && !this.gameOver) {
-            this.ctx.font = 'bold 24px sans-serif';
+        // Anleitung - immer sichtbar für Kinder
+        if (!this.gameOver) {
+            this.ctx.font = 'bold 28px sans-serif';
             this.ctx.fillStyle = '#1e293b';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('🦘 Tippe zum Springen! 🦘', this.canvas.width / 2, 100);
+            this.ctx.shadowColor = 'rgba(255, 255, 255, 0.8)';
+            this.ctx.shadowBlur = 5;
+            this.ctx.fillText('👆 Tippe zum Springen! 👆', this.canvas.width / 2, 80);
+            this.ctx.shadowBlur = 0;
         }
         
         this.ctx.restore();
