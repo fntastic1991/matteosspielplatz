@@ -116,8 +116,8 @@ export class JumpingGame {
             this.score = 0;
             this.gameOver = false;
             this.obstacleTimer = 0;
-            this.obstacleSpeed = 2.5;  // Zurück auf Start-Geschwindigkeit!
-            this.obstacleInterval = 150;
+            this.obstacleSpeed = 1.5;  // Zurück auf Start-Geschwindigkeit!
+            this.obstacleInterval = 200;
             this.player.velocityY = 0;
             this.player.isJumping = false;
             this.player.rotation = 0;
@@ -132,8 +132,9 @@ export class JumpingGame {
             return;
         }
         
-        // Springen nur vom Boden aus
-        if (!this.player.isJumping) {
+        // Doppel-Sprung erlaubt (erleichtert es für 4-Jährige enorm!)
+        // Kann springen wenn am Boden ODER wenn schon fallend
+        if (!this.player.isJumping || this.player.velocityY > -5) {
             this.player.velocityY = this.jumpForce;
             this.player.isJumping = true;
             this.playJumpSound();
@@ -228,10 +229,8 @@ export class JumpingGame {
                 this.score++;
                 this.playScoreSound();
                 
-                // Geschwindigkeit nur ganz minimal erhöhen
-                if (this.score % 20 === 0 && this.obstacleSpeed < 2.5) {
-                    this.obstacleSpeed += 0.1; // Sehr sanft und niedriges Maximum
-                }
+                // KEINE Geschwindigkeitserhöhung - bleibt immer gleich einfach!
+                // (4-Jährige brauchen konstante, einfache Schwierigkeit)
             }
             
             // Hindernis entfernen wenn aus dem Bildschirm
