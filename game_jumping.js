@@ -19,15 +19,15 @@ export class JumpingGame {
         };
         
         // Physik
-        this.gravity = 0.5; // Etwas sanfter
-        this.jumpForce = -14; // Noch höherer Sprung für bessere Überwindung
+        this.gravity = 0.4; // Sehr sanft
+        this.jumpForce = -15; // Sehr hoher Sprung
         this.groundY = 0;
         
         // Hindernisse
         this.obstacles = [];
-        this.obstacleSpeed = 2.5; // Viel langsamer für 4-Jährige
+        this.obstacleSpeed = 1.5; // Sehr langsam für 4-Jährige
         this.obstacleTimer = 0;
-        this.obstacleInterval = 150; // Mehr Zeit zwischen Hindernissen
+        this.obstacleInterval = 200; // Viel Zeit zwischen Hindernissen
         
         // Score
         this.score = 0;
@@ -55,8 +55,8 @@ export class JumpingGame {
         this.score = 0;
         this.gameOver = false;
         this.obstacleTimer = 0;
-        this.obstacleSpeed = 2.5; // WICHTIG: Geschwindigkeit zurücksetzen!
-        this.obstacleInterval = 150;
+        this.obstacleSpeed = 1.5; // WICHTIG: Sehr langsame Geschwindigkeit!
+        this.obstacleInterval = 200;
         this.player.velocityY = 0;
         this.player.isJumping = false;
         this.player.rotation = 0;
@@ -172,13 +172,13 @@ export class JumpingGame {
     }
     
     spawnObstacle() {
-        // Alle Hindernisse sind klein und leicht zu überspringen (maximal 35 Pixel hoch und breit)
+        // Sehr kleine Hindernisse für 4-Jährige (maximal 25 Pixel hoch und breit)
         const types = [
-            { width: 30, height: 30, color: '#10b981', emoji: '🌳' },
-            { width: 35, height: 35, color: '#3b82f6', emoji: '🪨' },
-            { width: 32, height: 32, color: '#a855f7', emoji: '🌺' },
-            { width: 30, height: 35, color: '#f59e0b', emoji: '🍄' },
-            { width: 35, height: 30, color: '#ec4899', emoji: '🦋' }
+            { width: 25, height: 25, color: '#10b981', emoji: '🌳' },
+            { width: 25, height: 25, color: '#3b82f6', emoji: '🪨' },
+            { width: 25, height: 25, color: '#a855f7', emoji: '🌺' },
+            { width: 25, height: 25, color: '#f59e0b', emoji: '🍄' },
+            { width: 25, height: 25, color: '#ec4899', emoji: '🦋' }
         ];
         
         const type = types[Math.floor(Math.random() * types.length)];
@@ -229,8 +229,8 @@ export class JumpingGame {
                 this.playScoreSound();
                 
                 // Geschwindigkeit nur ganz minimal erhöhen
-                if (this.score % 15 === 0 && this.obstacleSpeed < 4) {
-                    this.obstacleSpeed += 0.15; // Sehr sanft und mit Maximum
+                if (this.score % 20 === 0 && this.obstacleSpeed < 2.5) {
+                    this.obstacleSpeed += 0.1; // Sehr sanft und niedriges Maximum
                 }
             }
             
@@ -247,7 +247,7 @@ export class JumpingGame {
             this.obstacleTimer = 0;
             
             // Interval anpassen für mehr Variation (längere Pausen)
-            this.obstacleInterval = 130 + Math.random() * 90; // Noch mehr Zeit zwischen Hindernissen
+            this.obstacleInterval = 180 + Math.random() * 120; // Sehr viel Zeit zwischen Hindernissen
         }
     }
     
