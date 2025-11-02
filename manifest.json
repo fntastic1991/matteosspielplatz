@@ -1,0 +1,27 @@
+{
+  "name": "Matteo's Spielplatz",
+  "short_name": "Spielplatz",
+  "description": "Lustige Lernspiele für Kinder",
+  "start_url": "/",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#ffffff",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://i.postimg.cc/dQr5ZBY0/Chat-GPT-Image-2-Nov-2025-08-57-55.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "https://i.postimg.cc/dQr5ZBY0/Chat-GPT-Image-2-Nov-2025-08-57-55.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["education", "games", "kids"],
+  "lang": "de-CH"
+}
+
