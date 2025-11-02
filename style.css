@@ -19,8 +19,6 @@
 
 body {
     font-family: 'Poppins', 'Helvetica Neue', system-ui, -apple-system, sans-serif;
-    background: url('https://i.postimg.cc/c4wXYJMt/Chat-GPT-Image-2-Nov-2025-08-13-57.png') no-repeat center center fixed;
-    background-size: cover;
     min-height: 100vh;
     overflow: hidden;
     touch-action: manipulation;
@@ -55,11 +53,25 @@ body::before {
     opacity: 0;
     pointer-events: none;
     transition: opacity 0.4s ease;
+    background: transparent;
 }
 
 .screen.active {
     opacity: 1;
     pointer-events: all;
+}
+
+/* Hintergrundbild für alle Screens sichtbar */
+body::after {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: url('https://i.postimg.cc/c4wXYJMt/Chat-GPT-Image-2-Nov-2025-08-13-57.png') no-repeat center center fixed;
+    background-size: cover;
+    z-index: -2;
 }
 
 .overlay {
@@ -697,12 +709,16 @@ body::before {
     text-align: center;
     padding: 3rem 2rem;
     max-width: 450px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(15px);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(10px);
     border-radius: 30px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
     border: 3px solid rgba(255, 255, 255, 0.9);
     animation: popIn 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+#lock-screen {
+    background: transparent !important;
 }
 
 .lock-icon {
