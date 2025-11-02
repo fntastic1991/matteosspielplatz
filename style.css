@@ -156,36 +156,66 @@ body::before {
 
 .menu-container {
     text-align: center;
-    padding: clamp(1.5rem, 3vw, 2.5rem) clamp(1rem, 2vw, 2rem);
-    max-width: 1400px;
-    width: 92%;
+    padding: 1rem 0.8rem;
+    max-width: 100%;
+    width: 100%;
     animation: slideIn 0.6s ease-out;
     position: relative;
     z-index: 1;
     background: transparent;
 }
 
+@media (min-width: 768px) {
+    .menu-container {
+        padding: 1.5rem 1.5rem;
+        max-width: 1400px;
+        width: 95%;
+    }
+}
+
+@media (min-width: 1024px) {
+    .menu-container {
+        padding: 2rem 2rem;
+        width: 92%;
+    }
+}
+
 .title-container {
-    margin-bottom: 2.5rem;
-    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    padding: 1rem 1rem;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(15px);
-    border-radius: 30px;
-    box-shadow: 0 15px 50px rgba(0, 0, 0, 0.15);
+    border-radius: 20px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
     border: 3px solid rgba(255, 255, 255, 0.9);
 }
 
+@media (min-width: 768px) {
+    .title-container {
+        margin-bottom: 2rem;
+        padding: 1.5rem 2rem;
+        border-radius: 30px;
+    }
+}
+
 .title {
-    font-size: clamp(2.5rem, 8vw, 4.5rem);
+    font-size: clamp(2rem, 7vw, 3.5rem);
     color: #1e293b;
-    margin-bottom: 0.8rem;
+    margin-bottom: 0.5rem;
     text-shadow: 2px 2px 8px rgba(255, 255, 255, 0.8), 3px 3px 15px rgba(0, 0, 0, 0.2);
     font-weight: 900;
     letter-spacing: -0.02em;
     display: flex;
     flex-direction: column;
     align-items: center;
-    line-height: 1;
+    line-height: 0.95;
+}
+
+@media (min-width: 768px) {
+    .title {
+        font-size: clamp(3rem, 8vw, 4.5rem);
+        margin-bottom: 0.8rem;
+    }
 }
 
 .title-word {
@@ -211,36 +241,42 @@ body::before {
 }
 
 .subtitle {
-    font-size: clamp(1.2rem, 3vw, 1.6rem);
+    font-size: clamp(1rem, 2.5vw, 1.4rem);
     color: #475569;
     font-weight: 600;
     animation: slideIn 0.8s ease-out 0.3s backwards;
     text-shadow: 1px 1px 3px rgba(255, 255, 255, 0.9);
 }
 
+@media (min-width: 768px) {
+    .subtitle {
+        font-size: clamp(1.2rem, 3vw, 1.6rem);
+    }
+}
+
 .menu-buttons {
     display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.2rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
     margin-bottom: 0;
     padding: 0;
 }
 
-@media (min-width: 640px) {
+@media (min-width: 768px) {
     .menu-buttons {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 1.2rem;
     }
 }
 
-@media (min-width: 900px) {
+@media (min-width: 1024px) {
     .menu-buttons {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(4, 1fr);
         gap: 1.5rem;
     }
 }
 
-@media (min-width: 1200px) {
+@media (min-width: 1400px) {
     .menu-buttons {
         grid-template-columns: repeat(5, 1fr);
         gap: 1.5rem;
@@ -252,29 +288,35 @@ body::before {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    gap: 0.8rem;
-    padding: 1.8rem 1.5rem;
-    font-size: clamp(1.1rem, 3vw, 1.4rem);
+    gap: 0.5rem;
+    padding: 1.2rem 0.8rem;
+    font-size: clamp(0.9rem, 2.5vw, 1.2rem);
     font-weight: 600;
     color: white;
     border: none;
-    border-radius: 25px;
+    border-radius: 20px;
     cursor: pointer;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25), 0 4px 12px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     animation: slideInButton 0.6s ease-out backwards;
     position: relative;
     overflow: hidden;
-    min-height: 180px;
-    border: 3px solid rgba(255, 255, 255, 0.5);
+    min-height: 130px;
+    border: 2px solid rgba(255, 255, 255, 0.5);
 }
 
-@media (max-width: 639px) {
+@media (min-width: 768px) {
     .game-button {
-        flex-direction: row;
-        text-align: left;
-        min-height: auto;
-        padding: 1.5rem 1.8rem;
+        padding: 1.5rem 1.2rem;
+        min-height: 160px;
+        gap: 0.8rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .game-button {
+        padding: 1.8rem 1.5rem;
+        min-height: 180px;
         gap: 1rem;
     }
 }
@@ -356,7 +398,7 @@ body::before {
 }
 
 .emoji {
-    font-size: 3.5rem;
+    font-size: 2.5rem;
     animation: bounce 2s ease-in-out infinite;
     flex-shrink: 0;
     filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.25));
@@ -368,9 +410,15 @@ body::before {
     animation: none;
 }
 
-@media (max-width: 639px) {
+@media (min-width: 768px) {
     .emoji {
-        font-size: 2.8rem;
+        font-size: 3rem;
+    }
+}
+
+@media (min-width: 1024px) {
+    .emoji {
+        font-size: 3.5rem;
     }
 }
 
@@ -379,28 +427,37 @@ body::before {
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 0.6rem;
-}
-
-@media (max-width: 639px) {
-    .button-content {
-        align-items: flex-start;
-        text-align: left;
-    }
+    gap: 0.3rem;
 }
 
 .button-title {
-    font-size: clamp(1.1rem, 3vw, 1.35rem);
+    font-size: clamp(0.85rem, 2.5vw, 1.2rem);
     font-weight: 700;
     text-shadow: 2px 2px 6px rgba(0, 0, 0, 0.25);
     letter-spacing: 0.01em;
+    line-height: 1.2;
 }
 
 .button-description {
-    font-size: clamp(0.85rem, 2.5vw, 1rem);
+    font-size: clamp(0.7rem, 2vw, 0.95rem);
     font-weight: 500;
     opacity: 0.95;
     text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.2);
+    line-height: 1.3;
+}
+
+@media (min-width: 768px) {
+    .button-content {
+        gap: 0.5rem;
+    }
+    
+    .button-title {
+        font-size: clamp(1rem, 2.5vw, 1.3rem);
+    }
+    
+    .button-description {
+        font-size: clamp(0.85rem, 2vw, 1rem);
+    }
 }
 
 .menu-decoration {
