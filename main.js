@@ -9,6 +9,7 @@ import { NumbersGame } from './game_numbers.js';
 import { CountingGame } from './game_counting.js';
 import { JumpingGame } from './game_jumping.js';
 import { MusicGame } from './game_music.js';
+import { DodgingGame } from './game_dodging.js';
 import { audioManager } from './audio_utils.js';
 
 class GameApp {
@@ -194,6 +195,9 @@ class GameApp {
                 break;
             case 'music':
                 this.currentGame = new MusicGame();
+                break;
+            case 'dodging':
+                this.currentGame = new DodgingGame();
                 break;
         }
         

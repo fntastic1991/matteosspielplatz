@@ -1,6 +1,6 @@
 // service-worker.js - Offline-Unterstützung
 
-const CACHE_NAME = 'matteos-spielplatz-v2';
+const CACHE_NAME = 'matteos-spielplatz-v3';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -18,6 +18,7 @@ const urlsToCache = [
   '/game_counting.js',
   '/game_jumping.js',
   '/game_music.js',
+  '/game_dodging.js',
   '/manifest.json',
   'https://i.postimg.cc/dQr5ZBY0/Chat-GPT-Image-2-Nov-2025-08-57-55.png',
   'https://i.postimg.cc/c4wXYJMt/Chat-GPT-Image-2-Nov-2025-08-13-57.png'
