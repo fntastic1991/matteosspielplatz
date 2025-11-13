@@ -82,17 +82,6 @@ export class ShapeGame {
         
         // Formen erstellen
         this.createShapes();
-        
-        // Touch/Mouse Events
-        this.canvas.addEventListener('mousedown', this.handleMouseDown);
-        this.canvas.addEventListener('mousemove', this.handleMouseMove);
-        this.canvas.addEventListener('mouseup', this.handleMouseUp);
-        this.canvas.addEventListener('touchstart', this.handleTouchStart);
-        this.canvas.addEventListener('touchmove', this.handleTouchMove);
-        this.canvas.addEventListener('touchend', this.handleTouchEnd);
-        
-        // Render-Loop
-        this.render();
     }
     
     stop() {
