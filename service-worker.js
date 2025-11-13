@@ -1,11 +1,12 @@
 // service-worker.js - Offline-Unterstützung
 
-const CACHE_NAME = 'matteos-spielplatz-v1';
+const CACHE_NAME = 'matteos-spielplatz-v2';
 const urlsToCache = [
   '/',
   '/index.html',
   '/style.css',
   '/main.js',
+  '/audio_utils.js',
   '/parental_control.js',
   '/game_colors.js',
   '/game_balloons.js',

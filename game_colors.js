@@ -1,5 +1,6 @@
 // game_colors.js - Farben antippen Spiel
 // Grafiken von https://www.svgrepo.com (CC0 lizenziert)
+import { audioManager } from './audio_utils.js';
 
 import { loadImageWithFallback } from './main.js';
 

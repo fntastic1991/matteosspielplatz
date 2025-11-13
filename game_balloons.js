@@ -1,5 +1,6 @@
 // game_balloons.js - Ballon platzen Spiel
 // Grafiken von https://www.svgrepo.com (CC0 lizenziert)
+import { audioManager } from './audio_utils.js';
 
 import { loadImageWithFallback } from './main.js';
 
@@ -158,26 +159,7 @@ export class BalloonGame {
     }
     
     playPopSound() {
-        try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
-            
-            oscillator.frequency.setValueAtTime(800, audioContext.currentTime);
-            oscillator.frequency.exponentialRampToValueAtTime(200, audioContext.currentTime + 0.1);
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
-            
-            oscillator.start(audioContext.currentTime);
-            oscillator.stop(audioContext.currentTime + 0.1);
-        } catch (e) {
-            // Audio nicht unterstützt
-        }
+        audioManager.playPopSound();
     }
     
     drawCloud(x, y, size) {

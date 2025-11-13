@@ -1,4 +1,5 @@
 // game_music.js - Musik machen Spiel
+import { audioManager } from './audio_utils.js';
 
 export class MusicGame {
     constructor() {
@@ -6,9 +7,6 @@ export class MusicGame {
         this.canvas = null;
         this.ctx = null;
         this.onExit = null;
-        
-        // Audio Context
-        this.audioContext = null;
         
         // Aktuelles Instrument
         this.currentInstrument = 'piano'; // piano, guitar, drums, xylophone
@@ -38,11 +36,8 @@ export class MusicGame {
         this.onExit = onExit;
         this.isRunning = true;
         
-        // Audio Context initialisieren
-        this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        
-        // iOS Audio-Fix: AudioContext entsperren mit stummem Sound
-        this.unlockAudioContext();
+        // Stelle sicher, dass Audio läuft
+        await audioManager.ensureRunning();
         
         // UI Setup
         this.setupInstrumentButtons();
@@ -64,38 +59,6 @@ export class MusicGame {
         this.canvas.removeEventListener('touchstart', this.handleTouchStart);
         this.canvas.removeEventListener('touchmove', this.handleTouchMove);
         this.canvas.removeEventListener('touchend', this.handleTouchEnd);
-        
-        if (this.audioContext) {
-            this.audioContext.close();
-        }
-    }
-    
-    unlockAudioContext() {
-        // iOS benötigt User-Interaktion um Audio zu entsperren
-        if (this.audioContext.state === 'suspended') {
-            const unlock = () => {
-                this.audioContext.resume().then(() => {
-                    console.log('🔊 AudioContext entsperrt');
-                    // Spiele stummen Ton zur Aktivierung
-                    const oscillator = this.audioContext.createOscillator();
-                    const gainNode = this.audioContext.createGain();
-                    gainNode.gain.value = 0.001;
-                    oscillator.connect(gainNode);
-                    gainNode.connect(this.audioContext.destination);
-                    oscillator.start(0);
-                    oscillator.stop(0.001);
-                    
-                    // Event Listener entfernen
-                    document.body.removeEventListener('touchstart', unlock);
-                    document.body.removeEventListener('touchend', unlock);
-                    document.body.removeEventListener('click', unlock);
-                });
-            };
-            
-            document.body.addEventListener('touchstart', unlock, { once: true });
-            document.body.addEventListener('touchend', unlock, { once: true });
-            document.body.addEventListener('click', unlock, { once: true });
-        }
     }
     
     setupInstrumentButtons() {
@@ -307,75 +270,11 @@ export class MusicGame {
     }
     
     playNote(frequency, instrument) {
-        try {
-            // Stelle sicher dass AudioContext läuft (iOS-Fix)
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
-            }
-            
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.value = frequency;
-            
-            // Instrumenten-spezifische Wellenformen
-            switch(instrument) {
-                case 'piano':
-                    oscillator.type = 'sine';
-                    gainNode.gain.setValueAtTime(0.3, this.audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.5);
-                    break;
-                case 'guitar':
-                    oscillator.type = 'sawtooth';
-                    gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.8);
-                    break;
-                case 'drums':
-                    oscillator.type = 'triangle';
-                    gainNode.gain.setValueAtTime(0.4, this.audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.2);
-                    break;
-                case 'xylophone':
-                    oscillator.type = 'square';
-                    gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-                    gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.3);
-                    break;
-            }
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 1);
-        } catch (e) {
-            console.error('Audio playback error:', e);
-        }
+        audioManager.playNote(frequency, instrument);
     }
     
     playClickSound() {
-        try {
-            // Stelle sicher dass AudioContext läuft (iOS-Fix)
-            if (this.audioContext.state === 'suspended') {
-                this.audioContext.resume();
-            }
-            
-            const oscillator = this.audioContext.createOscillator();
-            const gainNode = this.audioContext.createGain();
-            
-            oscillator.connect(gainNode);
-            gainNode.connect(this.audioContext.destination);
-            
-            oscillator.frequency.value = 600;
-            oscillator.type = 'sine';
-            
-            gainNode.gain.setValueAtTime(0.2, this.audioContext.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, this.audioContext.currentTime + 0.1);
-            
-            oscillator.start(this.audioContext.currentTime);
-            oscillator.stop(this.audioContext.currentTime + 0.1);
-        } catch (e) {
-            // Audio nicht unterstützt
-        }
+        audioManager.playClickSound();
     }
     
     createNoteParticles(x, y, color) {

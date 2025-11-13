@@ -9,6 +9,7 @@ import { NumbersGame } from './game_numbers.js';
 import { CountingGame } from './game_counting.js';
 import { JumpingGame } from './game_jumping.js';
 import { MusicGame } from './game_music.js';
+import { audioManager } from './audio_utils.js';
 
 class GameApp {
     constructor() {
@@ -122,6 +123,15 @@ class GameApp {
     }
     
     attachEventListeners() {
+        // Audio beim ersten Klick initialisieren (wichtig für iOS/Safari)
+        document.addEventListener('click', () => {
+            audioManager.unlock();
+        }, { once: true });
+        
+        document.addEventListener('touchstart', () => {
+            audioManager.unlock();
+        }, { once: true });
+        
         // Menü-Buttons
         document.querySelectorAll('.game-button').forEach(button => {
             button.addEventListener('click', (e) => {
