@@ -323,16 +323,21 @@ export class DodgingGame {
     }
     
     render() {
-        // Hintergrund (Straße)
+        // Hintergrund (Straße) - heller für bessere Sichtbarkeit
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#374151');
-        gradient.addColorStop(1, '#1f2937');
+        gradient.addColorStop(0, '#6b7280');
+        gradient.addColorStop(1, '#4b5563');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
+        // Grüne Seitenstreifen (Gras)
+        this.ctx.fillStyle = '#10b981';
+        this.ctx.fillRect(0, 0, 30, this.canvas.height);
+        this.ctx.fillRect(this.canvas.width - 30, 0, 30, this.canvas.height);
+        
         // Straßenmarkierungen
-        this.ctx.strokeStyle = '#fbbf24';
-        this.ctx.lineWidth = 3;
+        this.ctx.strokeStyle = 'white';
+        this.ctx.lineWidth = 4;
         this.ctx.setLineDash([20, 20]);
         this.ctx.lineDashOffset = (this.frameCount * 3) % 40;
         
@@ -378,13 +383,34 @@ export class DodgingGame {
             this.ctx.translate(obj.x, obj.y);
             this.ctx.rotate(obj.rotation);
             
+            // Heller Hintergrund für bessere Sichtbarkeit
+            const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, obj.width * 0.8);
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
+            gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.7)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            this.ctx.fillStyle = gradient;
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, obj.width * 0.8, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Weißer Kreis als Hintergrund
+            this.ctx.fillStyle = 'white';
+            this.ctx.beginPath();
+            this.ctx.arc(0, 0, obj.width * 0.55, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Farbiger Rand
+            this.ctx.strokeStyle = obj.color;
+            this.ctx.lineWidth = 4;
+            this.ctx.stroke();
+            
             // Schatten
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            this.ctx.shadowBlur = 10;
-            this.ctx.shadowOffsetY = 5;
+            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
+            this.ctx.shadowBlur = 15;
+            this.ctx.shadowOffsetY = 8;
             
             // Emoji
-            this.ctx.font = `${obj.width}px Arial`;
+            this.ctx.font = `${obj.width * 0.7}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText(obj.emoji, 0, 0);
