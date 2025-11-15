@@ -10,6 +10,7 @@ import { CountingGame } from './game_counting.js';
 import { JumpingGame } from './game_jumping.js';
 import { MusicGame } from './game_music.js';
 import { DodgingGame } from './game_dodging.js';
+import { ClawGame } from './game_claw.js';
 import { audioManager } from './audio_utils.js';
 
 class GameApp {
@@ -160,9 +161,12 @@ class GameApp {
         });
     }
     
-    startGame(gameType) {
+    async startGame(gameType) {
         this.score = 0;
         this.updateScore();
+        
+        // Audio sicherstellen (wichtig für iOS/Safari)
+        await audioManager.ensureRunning();
         
         // Spiel initialisieren
         switch(gameType) {
@@ -198,6 +202,9 @@ class GameApp {
                 break;
             case 'dodging':
                 this.currentGame = new DodgingGame();
+                break;
+            case 'claw':
+                this.currentGame = new ClawGame();
                 break;
         }
         

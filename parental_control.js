@@ -9,6 +9,7 @@ class ParentalControl {
         this.isTimerRunning = false;
         
         this.currentPuzzle = null;
+        this.isCheckingAnswer = false; // Verhindert mehrfaches Klicken
         
         this.init();
     }
@@ -251,7 +252,21 @@ class ParentalControl {
     }
     
     checkPuzzleAnswer(answer) {
+        // Verhindere mehrfaches Klicken während der Überprüfung
+        if (this.isCheckingAnswer) {
+            return;
+        }
+        this.isCheckingAnswer = true;
+        
         const errorDiv = document.getElementById('puzzle-error');
+        
+        // WICHTIG: Alle Buttons sofort deaktivieren, damit nicht weiter geklickt werden kann
+        const answerButtons = document.querySelectorAll('.puzzle-answer-button');
+        answerButtons.forEach(btn => {
+            btn.disabled = true;
+            btn.style.opacity = '0.5';
+            btn.style.cursor = 'not-allowed';
+        });
         
         if (answer === this.currentPuzzle.correctAnswer) {
             // Richtige Antwort
@@ -259,18 +274,20 @@ class ParentalControl {
             errorDiv.style.color = '#10b981';
             
             setTimeout(() => {
+                this.isCheckingAnswer = false;
                 this.showParentDashboard();
             }, 1000);
             
         } else {
-            // Falsche Antwort
-            errorDiv.textContent = '❌ Leider falsch. Versuche es nochmal!';
+            // Falsche Antwort - SOFORT neues Rätsel generieren
+            errorDiv.textContent = '❌ Falsch! Neue Aufgabe...';
             errorDiv.style.color = '#ef4444';
             
-            // Neues Rätsel nach kurzer Zeit
+            // Sehr kurze Wartezeit, dann sofort neue Aufgabe
             setTimeout(() => {
+                this.isCheckingAnswer = false;
                 this.generatePuzzle();
-            }, 1500);
+            }, 800);
         }
     }
     

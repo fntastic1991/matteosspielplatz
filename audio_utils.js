@@ -80,6 +80,11 @@ class AudioManager {
         try {
             await this.ensureRunning();
             
+            if (!this.audioContext) {
+                console.warn('⚠️ AudioContext nicht verfügbar');
+                return;
+            }
+            
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
             
@@ -100,7 +105,7 @@ class AudioManager {
             oscillator.stop(now + duration);
             
         } catch (err) {
-            console.error('Fehler beim Sound abspielen:', err);
+            console.error('❌ Fehler beim Sound abspielen:', err);
         }
     }
     
@@ -181,6 +186,11 @@ class AudioManager {
     async playNote(frequency, instrument = 'piano') {
         try {
             await this.ensureRunning();
+            
+            if (!this.audioContext) {
+                console.warn('⚠️ AudioContext nicht verfügbar');
+                return;
+            }
             
             const oscillator = this.audioContext.createOscillator();
             const gainNode = this.audioContext.createGain();
