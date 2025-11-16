@@ -344,7 +344,6 @@ export class ClawGame {
             
             // Toy mit hochziehen
             if (this.claw.grabbedToy) {
-                const isoY = this.toIsoY(this.claw.x, this.claw.z + this.claw.ropeLength + this.claw.height);
                 this.claw.grabbedToy.y = -(this.claw.ropeLength * 0.7);
                 
                 // Wackel-Effekt beim Hochziehen
@@ -607,13 +606,13 @@ export class ClawGame {
         });
     }
     
-    // Isometrische Koordinaten-Umrechnung
+    // Koordinaten-Umrechnung (vereinfacht)
     toIsoX(x, z) {
-        return x + (z - this.box.y) * 0.5;
+        return x;
     }
     
     toIsoY(x, z) {
-        return z * 0.5;
+        return z;
     }
     
     // Zeichnen-Funktionen
@@ -669,13 +668,13 @@ export class ClawGame {
     drawToy(toy) {
         if (toy === this.claw.grabbedToy && this.claw.state !== 'idle') return;
         
-        // Isometrische Position
-        const screenX = this.toIsoX(toy.x, toy.z);
-        const screenY = this.toIsoY(toy.x, toy.z) + toy.y;
+        // Position im Behälter (einfacher - nicht isometrisch)
+        const screenX = toy.x;
+        const screenY = toy.z + toy.y;
         
-        // Perspektiven-Skalierung
+        // Perspektiven-Skalierung basierend auf Tiefe
         const depth = (toy.z - this.box.y) / this.box.depth;
-        const scale = 0.75 + depth * 0.25;
+        const scale = 0.8 + depth * 0.2;
         const displaySize = toy.size * scale;
         
         // Bounce Animation
@@ -771,15 +770,15 @@ export class ClawGame {
     drawClaw() {
         const { x, z, y, width, height, openAmount, ropeLength, swing } = this.claw;
         
-        // Isometrische Position
-        const screenX = this.toIsoX(x, z + ropeLength) + swing;
-        const screenY = this.toIsoY(x, z + ropeLength) + y;
+        // Position (einfacher - nicht isometrisch)
+        const screenX = x + swing;
+        const screenY = z + ropeLength + y;
         
         this.ctx.save();
         
         // Seil mit Animation
-        const ropeStartX = this.toIsoX(x, z) + swing * 0.3;
-        const ropeStartY = this.toIsoY(x, z) - 50;
+        const ropeStartX = x + swing * 0.3;
+        const ropeStartY = z - 50;
         
         this.ctx.strokeStyle = '#64748b';
         this.ctx.lineWidth = 4;
