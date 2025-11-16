@@ -91,8 +91,17 @@ export class ClawGame {
         this.box.x = (this.canvas.width - this.box.width) / 2;
         this.box.y = 180; // Etwas tiefer
         
-        // Greifer zurücksetzen
-        this.resetClaw();
+        // Greifer zurücksetzen (über der Box!)
+        this.claw.x = this.canvas.width / 2;
+        this.claw.z = this.box.y - 30; // ÜBER der Box
+        this.claw.targetX = this.claw.x;
+        this.claw.targetZ = this.claw.z;
+        this.claw.y = 0;
+        this.claw.state = 'idle';
+        this.claw.grabbedToy = null;
+        this.claw.openAmount = 1;
+        this.claw.ropeLength = 0;
+        this.claw.swing = 0;
         
         // Plüschtiere generieren
         this.generateToys();
@@ -126,7 +135,7 @@ export class ClawGame {
     
     resetClaw() {
         this.claw.x = this.canvas.width / 2;
-        this.claw.z = this.box.y + this.box.depth / 2;
+        this.claw.z = this.box.y - 30; // ÜBER der Box, nicht mittendrin!
         this.claw.targetX = this.claw.x;
         this.claw.targetZ = this.claw.z;
         this.claw.y = 0;
@@ -265,17 +274,11 @@ export class ClawGame {
     
     updateClawFromJoystick() {
         const dx = this.joystickCurrent.x - this.joystickStart.x;
-        const dy = this.joystickCurrent.y - this.joystickStart.y;
         
-        // X-Bewegung (horizontal)
+        // Nur X-Bewegung (horizontal) - Greifer bleibt OBEN!
         const minX = this.box.x + 40;
         const maxX = this.box.x + this.box.width - 40;
         this.claw.targetX = Math.max(minX, Math.min(maxX, this.claw.x + dx * 0.5));
-        
-        // Z-Bewegung (Tiefe)
-        const minZ = this.box.y + 40;
-        const maxZ = this.box.y + this.box.depth - 40;
-        this.claw.targetZ = Math.max(minZ, Math.min(maxZ, this.claw.z + dy * 0.3));
     }
     
     startGrab() {
@@ -318,7 +321,8 @@ export class ClawGame {
             this.claw.ropeLength += 5;
             this.claw.swing = Math.sin(this.claw.ropeLength * 0.1) * 3;
             
-            const maxRope = this.box.floorY - this.box.y - this.claw.height;
+            // Fahre bis zum Boden der Box
+            const maxRope = this.box.y + this.box.height - 60;
             
             if (this.claw.ropeLength >= maxRope) {
                 this.claw.ropeLength = maxRope;
@@ -378,19 +382,15 @@ export class ClawGame {
         // Zurückkehren
         if (this.claw.state === 'returning') {
             const centerX = this.canvas.width / 2;
-            const centerZ = this.box.y + this.box.depth / 2;
             
             const dx = centerX - this.claw.x;
-            const dz = centerZ - this.claw.z;
             
-            if (Math.abs(dx) > 3 || Math.abs(dz) > 3) {
+            if (Math.abs(dx) > 3) {
                 this.claw.x += dx * 0.1;
-                this.claw.z += dz * 0.1;
                 
                 // Toy mitbewegen
                 if (this.claw.grabbedToy) {
                     this.claw.grabbedToy.x = this.claw.x;
-                    this.claw.grabbedToy.z = this.claw.z + 20;
                 }
             } else {
                 // Angekommen - Toy abwerfen
@@ -411,17 +411,17 @@ export class ClawGame {
         for (let toy of this.toys) {
             if (toy.caught) continue;
             
+            // Highlight wenn Greifer über dem Toy ist
             const dx = toy.x - this.claw.x;
-            const dz = toy.z - (this.claw.z + this.claw.ropeLength);
-            const distance = Math.sqrt(dx * dx + dz * dz);
+            const distance = Math.abs(dx);
             
-            toy.highlight = distance < 85; // Größerer Highlight-Bereich
+            toy.highlight = distance < 90; // Großer Highlight-Bereich
         }
     }
     
     tryGrabToy() {
-        const clawBottomX = this.claw.x;
-        const clawBottomZ = this.claw.z + this.claw.ropeLength + this.claw.height;
+        const clawX = this.claw.x;
+        const clawY = this.claw.z + this.claw.ropeLength; // Y-Position des Greifers am Boden
         
         let closestToy = null;
         let closestDistance = Infinity;
@@ -430,9 +430,10 @@ export class ClawGame {
         for (let toy of this.toys) {
             if (toy.caught) continue;
             
-            const dx = toy.x - clawBottomX;
-            const dz = toy.z - clawBottomZ;
-            const distance = Math.sqrt(dx * dx + dz * dz);
+            // Vergleiche Position in der Box
+            const dx = toy.x - clawX;
+            const dy = toy.z - clawY;
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
             if (distance < closestDistance) {
                 closestDistance = distance;
@@ -440,8 +441,8 @@ export class ClawGame {
             }
         }
         
-        // Sehr großzügige Hitbox für 4-Jährige (noch größer!)
-        if (closestToy && closestDistance < 80) {
+        // SEHR großzügige Hitbox für 4-Jährige!
+        if (closestToy && closestDistance < 90) {
             this.claw.grabbedToy = closestToy;
             closestToy.caught = true;
             audioManager.playSuccessSound();
