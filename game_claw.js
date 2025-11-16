@@ -23,8 +23,8 @@ export class ClawGame {
             width: 80,
             height: 80,
             targetX: 0,
-            isGrabbing: false,
-            isReturning: false,
+            baseY: 0,
+            state: 'idle', // idle, moving_down, closing, moving_up, returning
             openAmount: 1, // 1 = offen, 0 = geschlossen
             grabbedToy: null
         };
@@ -57,6 +57,10 @@ export class ClawGame {
         this.claw.x = this.canvas.width / 2;
         this.claw.y = 60;
         this.claw.targetX = this.claw.x;
+        this.claw.baseY = this.claw.y;
+        this.claw.state = 'idle';
+        this.claw.openAmount = 1;
+        this.claw.grabbedToy = null;
         
         // Reset
         this.caughtToys = 0;
@@ -127,8 +131,8 @@ export class ClawGame {
     }
     
     handleInput(x, y) {
-        // Wenn Greifer gerade arbeitet, ignoriere Klicks
-        if (this.claw.isGrabbing || this.claw.isReturning) return;
+        // Wenn Greifer beschäftigt ist, ignoriere Klicks
+        if (this.claw.state !== 'idle') return;
         
         // Check Grab-Button
         const buttonWidth = 150;
@@ -151,55 +155,87 @@ export class ClawGame {
     }
     
     startGrab() {
-        this.claw.isGrabbing = true;
+        if (this.claw.state !== 'idle') return;
+        
+        this.claw.state = 'moving_down';
+        this.claw.openAmount = 1;
         audioManager.playClickSound();
     }
     
     update() {
-        // Bewege Greifer horizontal
-        if (!this.claw.isGrabbing && !this.claw.isReturning) {
+        // Bewege Greifer horizontal (nur im Idle-Zustand)
+        if (this.claw.state === 'idle') {
             const dx = this.claw.targetX - this.claw.x;
             if (Math.abs(dx) > 1) {
                 this.claw.x += dx * 0.15;
             }
         }
         
-        // Greif-Animation
-        if (this.claw.isGrabbing) {
-            // Schließe Greifer
-            this.claw.openAmount = Math.max(0, this.claw.openAmount - 0.05);
-            
-            // Nach 1 Sekunde: versuche zu greifen
-            if (this.claw.openAmount <= 0) {
-                this.tryGrab();
-                this.claw.isGrabbing = false;
-                this.claw.isReturning = true;
+        // Animations-Logik je nach Zustand
+        switch (this.claw.state) {
+            case 'moving_down': {
+                const targetY = this.box.y + 50; // in die Box hinein
+                if (this.claw.y < targetY) {
+                    this.claw.y += 8;
+                    if (this.claw.y >= targetY) {
+                        this.claw.y = targetY;
+                        this.claw.state = 'closing';
+                    }
+                }
+                break;
             }
-        }
-        
-        // Rückkehr-Animation
-        if (this.claw.isReturning) {
-            // Öffne Greifer wieder
-            this.claw.openAmount = Math.min(1, this.claw.openAmount + 0.05);
-            
-            // Bewege zur Mitte
-            const centerX = this.canvas.width / 2;
-            const dx = centerX - this.claw.x;
-            
-            if (Math.abs(dx) > 2) {
-                this.claw.x += dx * 0.1;
+            case 'closing': {
+                // Greifer schliessen
+                this.claw.openAmount = Math.max(0, this.claw.openAmount - 0.12);
+                if (this.claw.openAmount <= 0) {
+                    this.tryGrab();
+                    this.claw.state = 'moving_up';
+                }
+                break;
+            }
+            case 'moving_up': {
+                // Greifer wieder nach oben
+                if (this.claw.y > this.claw.baseY) {
+                    this.claw.y -= 8;
+                    if (this.claw.y <= this.claw.baseY) {
+                        this.claw.y = this.claw.baseY;
+                        this.claw.state = 'returning';
+                    }
+                }
                 
-                // Bewege Toy mit
+                // Gefangenes Toy mitbewegen
                 if (this.claw.grabbedToy) {
                     this.claw.grabbedToy.x = this.claw.x;
+                    this.claw.grabbedToy.y = this.claw.y + 60;
                 }
-            } else {
-                // Angekommen - sammle Toy ein
-                if (this.claw.grabbedToy) {
-                    this.collectToy(this.claw.grabbedToy);
-                    this.claw.grabbedToy = null;
+                break;
+            }
+            case 'returning': {
+                // Öffne Greifer langsam wieder
+                this.claw.openAmount = Math.min(1, this.claw.openAmount + 0.05);
+                
+                // Bewege zur Mitte
+                const centerX = this.canvas.width / 2;
+                const dx = centerX - this.claw.x;
+                
+                if (Math.abs(dx) > 2) {
+                    this.claw.x += dx * 0.1;
+                    
+                    // Gefangenes Toy mitbewegen
+                    if (this.claw.grabbedToy) {
+                        this.claw.grabbedToy.x = this.claw.x;
+                        this.claw.grabbedToy.y = this.claw.y + 60;
+                    }
+                } else {
+                    // Angekommen - Toy einsammeln (falls vorhanden)
+                    if (this.claw.grabbedToy) {
+                        this.collectToy(this.claw.grabbedToy);
+                        this.claw.grabbedToy = null;
+                    }
+                    this.claw.state = 'idle';
+                    this.claw.openAmount = 1;
                 }
-                this.claw.isReturning = false;
+                break;
             }
         }
         
@@ -228,12 +264,16 @@ export class ClawGame {
         let closestToy = null;
         let closestDist = Infinity;
         
-        // Finde nächstes Toy unter dem Greifer
+        // Position des Greifers am unteren Ende
+        const clawX = this.claw.x;
+        const clawY = this.claw.y + 40;
+        
+        // Finde nächstes Toy direkt unter dem Greifer
         for (let toy of this.toys) {
             if (toy.caught) continue;
             
-            const dx = toy.x - this.claw.x;
-            const dy = toy.y - (this.box.y + 50); // Mitte der Box
+            const dx = toy.x - clawX;
+            const dy = toy.y - clawY;
             const dist = Math.sqrt(dx * dx + dy * dy);
             
             if (dist < closestDist) {
@@ -426,13 +466,13 @@ export class ClawGame {
             this.ctx.globalAlpha = 1;
         }
         
-        // Grab-Button
-        if (!this.claw.isGrabbing && !this.claw.isReturning) {
+        // Grab-Button nur im Idle-Zustand
+        if (this.claw.state === 'idle') {
             this.drawGrabButton();
         }
         
         // Anleitung
-        if (this.caughtToys === 0 && !this.claw.isGrabbing && !this.claw.isReturning) {
+        if (this.caughtToys === 0 && this.claw.state === 'idle') {
             this.ctx.save();
             this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
             this.ctx.font = 'bold 20px sans-serif';
@@ -503,8 +543,8 @@ export class ClawGame {
         this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
         this.ctx.fillRect(-width / 3 + 3, -12, width * 0.2, 25);
         
-        // Gefangenes Toy
-        if (this.claw.grabbedToy && this.claw.isReturning) {
+        // Gefangenes Toy anzeigen, wenn es am Greifer hängt
+        if (this.claw.grabbedToy && (this.claw.state === 'moving_up' || this.claw.state === 'returning')) {
             const toy = this.claw.grabbedToy;
             this.ctx.font = `${toy.size * 0.9}px Arial`;
             this.ctx.textAlign = 'center';
