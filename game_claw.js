@@ -29,11 +29,11 @@ export class ClawGame {
         // Box mit isometrischer Perspektive
         this.box = {
             x: 100,
-            y: 200,
+            y: 180,
             width: 0,
             height: 0,
-            depth: 250,
-            floorY: 450
+            depth: 400,
+            floorY: 580
         };
         
         // Plüschtiere mit Physik
@@ -44,18 +44,18 @@ export class ClawGame {
         this.maxCombo = 0;
         this.score = 0;
         
-        // Special Toys
+        // Special Toys (größer!)
         this.toyTypes = [
-            { emoji: '🧸', name: 'Teddy', color: '#f59e0b', size: 55, points: 10, special: false },
-            { emoji: '🐻', name: 'Bär', color: '#92400e', size: 55, points: 10, special: false },
-            { emoji: '🐰', name: 'Hase', color: '#ec4899', size: 50, points: 10, special: false },
-            { emoji: '🦁', name: 'Löwe', color: '#fbbf24', size: 55, points: 15, special: false },
-            { emoji: '🐯', name: 'Tiger', color: '#f97316', size: 55, points: 15, special: false },
-            { emoji: '🐼', name: 'Panda', color: '#1e293b', size: 55, points: 15, special: false },
-            { emoji: '🦊', name: 'Fuchs', color: '#ea580c', size: 50, points: 10, special: false },
-            { emoji: '🐶', name: 'Hund', color: '#84cc16', size: 50, points: 10, special: false },
-            { emoji: '⭐', name: 'Gold-Star', color: '#fbbf24', size: 45, points: 50, special: true },
-            { emoji: '💎', name: 'Diamant', color: '#3b82f6', size: 40, points: 30, special: true }
+            { emoji: '🧸', name: 'Teddy', color: '#f59e0b', size: 70, points: 10, special: false },
+            { emoji: '🐻', name: 'Bär', color: '#92400e', size: 70, points: 10, special: false },
+            { emoji: '🐰', name: 'Hase', color: '#ec4899', size: 65, points: 10, special: false },
+            { emoji: '🦁', name: 'Löwe', color: '#fbbf24', size: 70, points: 15, special: false },
+            { emoji: '🐯', name: 'Tiger', color: '#f97316', size: 70, points: 15, special: false },
+            { emoji: '🐼', name: 'Panda', color: '#1e293b', size: 70, points: 15, special: false },
+            { emoji: '🦊', name: 'Fuchs', color: '#ea580c', size: 65, points: 10, special: false },
+            { emoji: '🐶', name: 'Hund', color: '#84cc16', size: 65, points: 10, special: false },
+            { emoji: '⭐', name: 'Gold-Star', color: '#fbbf24', size: 60, points: 50, special: true },
+            { emoji: '💎', name: 'Diamant', color: '#3b82f6', size: 55, points: 30, special: true }
         ];
         
         // Visuelle Effekte
@@ -85,10 +85,11 @@ export class ClawGame {
         this.score = 0;
         this.celebrationMode = false;
         
-        // Box-Größe
-        this.box.width = Math.min(this.canvas.width - 120, 450);
-        this.box.height = 300;
+        // Box-Größe (viel größer!)
+        this.box.width = Math.min(this.canvas.width - 80, 600);
+        this.box.height = 400;
         this.box.x = (this.canvas.width - this.box.width) / 2;
+        this.box.y = 180; // Etwas tiefer
         
         // Greifer zurücksetzen
         this.resetClaw();
@@ -152,7 +153,7 @@ export class ClawGame {
     
     generateToys() {
         this.toys = [];
-        const numToys = 15;
+        const numToys = 12; // Weniger Toys für bessere Übersicht
         const numSpecial = 2; // 2 Special Toys
         
         // Normale Toys
@@ -414,7 +415,7 @@ export class ClawGame {
             const dz = toy.z - (this.claw.z + this.claw.ropeLength);
             const distance = Math.sqrt(dx * dx + dz * dz);
             
-            toy.highlight = distance < 60;
+            toy.highlight = distance < 85; // Größerer Highlight-Bereich
         }
     }
     
@@ -439,8 +440,8 @@ export class ClawGame {
             }
         }
         
-        // Sehr großzügige Hitbox für 4-Jährige
-        if (closestToy && closestDistance < 65) {
+        // Sehr großzügige Hitbox für 4-Jährige (noch größer!)
+        if (closestToy && closestDistance < 80) {
             this.claw.grabbedToy = closestToy;
             closestToy.caught = true;
             audioManager.playSuccessSound();
