@@ -261,33 +261,34 @@ export class ClawGame {
     }
     
     tryGrab() {
-        let closestToy = null;
-        let closestDist = Infinity;
+        // EXTREM verzeihendes Greifen:
+        // Wir schauen nur, ob der Greifer horizontal ungefähr über einem Spielzeug ist
+        // und nehmen dann das nächst-obere Spielzeug in dieser Spalte.
+        let bestToy = null;
+        let bestY = Infinity;
         
-        // Position des Greifers am unteren Ende
         const clawX = this.claw.x;
-        const clawY = this.claw.y + 40;
         
-        // Finde nächstes Toy direkt unter dem Greifer
         for (let toy of this.toys) {
             if (toy.caught) continue;
             
-            const dx = toy.x - clawX;
-            const dy = toy.y - clawY;
-            const dist = Math.sqrt(dx * dx + dy * dy);
+            const dx = Math.abs(toy.x - clawX);
             
-            if (dist < closestDist) {
-                closestDist = dist;
-                closestToy = toy;
+            // Sehr breite Spalte: fast die ganze Kachelbreite
+            if (dx < toy.size / 2 + 40) {
+                // Spielzeug mit kleinster y (also am weitesten oben) bevorzugen
+                if (toy.y < bestY) {
+                    bestY = toy.y;
+                    bestToy = toy;
+                }
             }
         }
         
-        // SEHR großzügige Hitbox (100px!)
-        if (closestToy && closestDist < 100) {
-            closestToy.caught = true;
-            this.claw.grabbedToy = closestToy;
+        if (bestToy) {
+            bestToy.caught = true;
+            this.claw.grabbedToy = bestToy;
             audioManager.playSuccessSound();
-            this.createParticles(closestToy.x, closestToy.y, closestToy.color);
+            this.createParticles(bestToy.x, bestToy.y, bestToy.color);
         } else {
             audioManager.playErrorSound();
         }
