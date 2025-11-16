@@ -150,7 +150,10 @@ export class ClawGame {
         if (y < 90) { // Nur klicks im oberen Bereich
             const minX = this.box.x + 40;
             const maxX = this.box.x + this.box.width - 40;
-            this.claw.targetX = Math.max(minX, Math.min(maxX, x));
+            const clampedX = Math.max(minX, Math.min(maxX, x));
+            // Sofortige Positionierung ohne spürbare Verzögerung
+            this.claw.targetX = clampedX;
+            this.claw.x = clampedX;
         }
     }
     
