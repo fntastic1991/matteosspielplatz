@@ -125,23 +125,24 @@ class GameApp {
     }
     
     attachEventListeners() {
-        // Audio beim ersten Klick initialisieren (wichtig für iOS/Safari)
-        document.addEventListener('click', () => {
-            audioManager.unlock();
-        }, { once: true });
-        
-        document.addEventListener('touchstart', () => {
-            audioManager.unlock();
-        }, { once: true });
-        
         // Menü-Buttons
         const gameButtons = document.querySelectorAll('.game-button');
         console.log(`🎮 Gefunden: ${gameButtons.length} Spiel-Buttons`);
         
         gameButtons.forEach(button => {
-            button.addEventListener('click', (e) => {
+            button.addEventListener('click', async (e) => {
                 const gameType = e.currentTarget.dataset.game;
                 console.log('🎯 Button geklickt:', gameType);
+                
+                // Audio SOFORT beim Button-Click aktivieren (wichtig für Browser-Policies!)
+                try {
+                    await audioManager.init();
+                    await audioManager.ensureRunning();
+                    console.log('🔊 Audio aktiviert!');
+                } catch (err) {
+                    console.warn('⚠️ Audio konnte nicht aktiviert werden:', err);
+                }
+                
                 this.startGame(gameType);
             });
         });
@@ -169,9 +170,6 @@ class GameApp {
         console.log('🚀 startGame aufgerufen mit:', gameType);
         this.score = 0;
         this.updateScore();
-        
-        // Audio im Hintergrund aktivieren (nicht warten!)
-        audioManager.ensureRunning().catch(e => console.warn('⚠️ Audio-Start Fehler:', e));
         
         // Spiel initialisieren
         switch(gameType) {
@@ -303,6 +301,7 @@ class GameApp {
 document.addEventListener('DOMContentLoaded', () => {
     const app = new GameApp();
     window.gameApp = app; // Global verfügbar machen für parental control
+    window.audioManager = audioManager; // Audio Manager global verfügbar machen
     console.log('✅ GameApp initialisiert und bereit!');
 });
 

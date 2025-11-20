@@ -15,6 +15,14 @@ class ParentalControl {
     }
     
     init() {
+        // Audio beim ersten Klick aktivieren (wichtig für Browser-Policy)
+        document.addEventListener('click', () => {
+            if (window.audioManager) {
+                window.audioManager.init();
+                window.audioManager.ensureRunning().catch(e => console.log('Audio-Init:', e));
+            }
+        }, { once: true });
+        
         // Event Listener für PIN-Eingabe
         const pinInput = document.getElementById('pin-input');
         const pinSubmit = document.getElementById('pin-submit');
