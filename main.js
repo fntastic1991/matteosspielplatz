@@ -161,17 +161,13 @@ class GameApp {
         });
     }
     
-    async startGame(gameType) {
+    startGame(gameType) {
         console.log('Starte Spiel:', gameType);
         this.score = 0;
         this.updateScore();
         
-        // Audio sicherstellen (wichtig für iOS/Safari), aber nicht blockieren bei Fehler
-        try {
-            await audioManager.ensureRunning();
-        } catch (e) {
-            console.warn('Audio konnte nicht gestartet werden:', e);
-        }
+        // Audio im Hintergrund aktivieren (nicht warten!)
+        audioManager.ensureRunning().catch(e => console.warn('Audio-Start Fehler:', e));
         
         // Spiel initialisieren
         try {
