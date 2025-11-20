@@ -170,8 +170,7 @@ class GameApp {
         audioManager.ensureRunning().catch(e => console.warn('Audio-Start Fehler:', e));
         
         // Spiel initialisieren
-        try {
-            switch(gameType) {
+        switch(gameType) {
             case 'colors':
                 this.currentGame = new ColorGame();
                 break;
@@ -208,6 +207,9 @@ class GameApp {
             case 'claw':
                 this.currentGame = new ClawGame();
                 break;
+            default:
+                console.error('Unbekanntes Spiel:', gameType);
+                return;
         }
         
         // Bildschirm wechseln
