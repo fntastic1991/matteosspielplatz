@@ -182,16 +182,17 @@ export class ClawGame {
                     this.claw.y += 8;
                     if (this.claw.y >= targetY) {
                         this.claw.y = targetY;
+                        // Sofort versuchen zu greifen wenn unten
+                        this.tryGrab();
                         this.claw.state = 'closing';
                     }
                 }
                 break;
             }
             case 'closing': {
-                // Greifer schliessen
+                // Greifer schliessen (nur visuell, Toy ist schon "gefangen" wenn möglich)
                 this.claw.openAmount = Math.max(0, this.claw.openAmount - 0.12);
                 if (this.claw.openAmount <= 0) {
-                    this.tryGrab();
                     this.claw.state = 'moving_up';
                 }
                 break;
@@ -264,24 +265,27 @@ export class ClawGame {
     }
     
     tryGrab() {
-        // EXTREM verzeihendes Greifen:
-        // Wir schauen nur, ob der Greifer horizontal ungefähr über einem Spielzeug ist
-        // und nehmen dann das nächst-obere Spielzeug in dieser Spalte.
+        // SUPER-MAGNET GREIFER
+        // Sucht das absolut nächste Toy, egal wo es vertikal ist (da wir von oben schauen)
         let bestToy = null;
-        let bestY = Infinity;
+        let minDistance = Infinity;
         
         const clawX = this.claw.x;
         
         for (let toy of this.toys) {
             if (toy.caught) continue;
             
+            // Distanz nur horizontal berechnen (weil wir von oben schauen)
             const dx = Math.abs(toy.x - clawX);
+            const dy = Math.abs(toy.y - (this.claw.y + 40)); // Vertikale Distanz zum Greiferkopf
             
-            // Sehr breite Spalte: fast die ganze Kachelbreite
-            if (dx < toy.size / 2 + 40) {
-                // Spielzeug mit kleinster y (also am weitesten oben) bevorzugen
-                if (toy.y < bestY) {
-                    bestY = toy.y;
+            // Gesamtdistanz (bevorzugt Toys die nah am Greifer sind)
+            const dist = Math.sqrt(dx*dx + dy*dy);
+            
+            // Wenn das Toy innerhalb einer sehr breiten Spalte ist (100px Radius!)
+            if (dx < 100) {
+                if (dist < minDistance) {
+                    minDistance = dist;
                     bestToy = toy;
                 }
             }
@@ -293,7 +297,16 @@ export class ClawGame {
             audioManager.playSuccessSound();
             this.createParticles(bestToy.x, bestToy.y, bestToy.color);
         } else {
-            audioManager.playErrorSound();
+            // Wenn gar nichts gefunden wurde, versuche IRGENDEIN Toy zu finden
+            // (Fallback für frustfreie Erfahrung)
+            const anyToy = this.toys.find(t => !t.caught);
+            if (anyToy && Math.random() > 0.7) { // 30% Chance auf "Mitleids-Greifen" wenn man total daneben liegt
+                 anyToy.caught = true;
+                 this.claw.grabbedToy = anyToy;
+                 audioManager.playSuccessSound();
+            } else {
+                audioManager.playErrorSound();
+            }
         }
     }
     

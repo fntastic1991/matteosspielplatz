@@ -162,14 +162,20 @@ class GameApp {
     }
     
     async startGame(gameType) {
+        console.log('Starte Spiel:', gameType);
         this.score = 0;
         this.updateScore();
         
-        // Audio sicherstellen (wichtig für iOS/Safari)
-        await audioManager.ensureRunning();
+        // Audio sicherstellen (wichtig für iOS/Safari), aber nicht blockieren bei Fehler
+        try {
+            await audioManager.ensureRunning();
+        } catch (e) {
+            console.warn('Audio konnte nicht gestartet werden:', e);
+        }
         
         // Spiel initialisieren
-        switch(gameType) {
+        try {
+            switch(gameType) {
             case 'colors':
                 this.currentGame = new ColorGame();
                 break;
