@@ -135,9 +135,13 @@ class GameApp {
         }, { once: true });
         
         // Menü-Buttons
-        document.querySelectorAll('.game-button').forEach(button => {
+        const gameButtons = document.querySelectorAll('.game-button');
+        console.log(`🎮 Gefunden: ${gameButtons.length} Spiel-Buttons`);
+        
+        gameButtons.forEach(button => {
             button.addEventListener('click', (e) => {
                 const gameType = e.currentTarget.dataset.game;
+                console.log('🎯 Button geklickt:', gameType);
                 this.startGame(gameType);
             });
         });
@@ -162,12 +166,12 @@ class GameApp {
     }
     
     startGame(gameType) {
-        console.log('Starte Spiel:', gameType);
+        console.log('🚀 startGame aufgerufen mit:', gameType);
         this.score = 0;
         this.updateScore();
         
         // Audio im Hintergrund aktivieren (nicht warten!)
-        audioManager.ensureRunning().catch(e => console.warn('Audio-Start Fehler:', e));
+        audioManager.ensureRunning().catch(e => console.warn('⚠️ Audio-Start Fehler:', e));
         
         // Spiel initialisieren
         switch(gameType) {
@@ -213,11 +217,15 @@ class GameApp {
         }
         
         // Bildschirm wechseln
+        console.log('📺 Wechsle zu game-screen');
         this.showScreen('game-screen');
         
         // Spiel starten
         if (this.currentGame) {
+            console.log('✅ Spiel wird gestartet:', this.currentGame.constructor.name);
             this.currentGame.start(this.ctx, () => this.showSuccess());
+        } else {
+            console.error('❌ Kein Spiel wurde initialisiert!');
         }
     }
     
@@ -293,7 +301,9 @@ class GameApp {
 
 // App initialisieren wenn DOM geladen ist
 document.addEventListener('DOMContentLoaded', () => {
-    new GameApp();
+    const app = new GameApp();
+    window.gameApp = app; // Global verfügbar machen für parental control
+    console.log('✅ GameApp initialisiert und bereit!');
 });
 
 // Hilfsfunktion für Bildladen mit Fallback
