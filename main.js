@@ -13,6 +13,10 @@ import { DodgingGame } from './game_dodging.js';
 import { ClawGame } from './game_claw.js';
 import { RocketGame } from './game_rocket.js';
 import { SpaceRaceGame } from './game_spacerace.js';
+import { BubblesGame } from './game_bubbles.js';
+import { CatchGame } from './game_catch.js';
+import { PaintGame } from './game_paint.js';
+import { PatternGame } from './game_pattern.js';
 import { audioManager } from './audio_utils.js';
 
 // ========================================
@@ -388,6 +392,18 @@ class GameApp {
                 break;
             case 'spacerace':
                 this.currentGame = new SpaceRaceGame();
+                break;
+            case 'bubbles':
+                this.currentGame = new BubblesGame();
+                break;
+            case 'catch':
+                this.currentGame = new CatchGame();
+                break;
+            case 'paint':
+                this.currentGame = new PaintGame();
+                break;
+            case 'pattern':
+                this.currentGame = new PatternGame();
                 break;
             default:
                 console.error('Unbekanntes Spiel:', gameType);
