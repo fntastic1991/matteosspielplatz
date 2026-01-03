@@ -1,4 +1,4 @@
-// game_music.js - Musik machen Spiel
+// game_music.js - 🌌 COSMIC Musik-Spiel
 import { audioManager } from './audio_utils.js';
 
 export class MusicGame {
@@ -8,26 +8,18 @@ export class MusicGame {
         this.ctx = null;
         this.onExit = null;
         
-        // Aktuelles Instrument
-        this.currentInstrument = 'piano'; // piano, guitar, drums, xylophone
-        
-        // Instrumente
-        this.instruments = [
-            { id: 'piano', name: 'Klavier', emoji: '🎹', color: '#3b82f6' },
-            { id: 'guitar', name: 'Gitarre', emoji: '🎸', color: '#ec4899' },
-            { id: 'drums', name: 'Schlagzeug', emoji: '🥁', color: '#f59e0b' },
-            { id: 'xylophone', name: 'Xylophon', emoji: '🎵', color: '#10b981' }
-        ];
-        
-        // Noten/Tasten
+        this.currentInstrument = 'piano';
         this.keys = [];
-        
-        // Visuelle Effekte
         this.particles = [];
-        this.notes = []; // Fliegende Noten
+        this.flyingNotes = [];
+        this.stars = [];
+        this.time = 0;
         
-        // Touch-Tracking
-        this.activeNotes = new Set();
+        this.instruments = [
+            { id: 'piano', name: '🎹', color: '#00ffff' },
+            { id: 'drums', name: '🥁', color: '#ff00ff' },
+            { id: 'xylophone', name: '🎵', color: '#ffff00' }
+        ];
     }
     
     async start(ctx, onExit) {
@@ -35,507 +27,458 @@ export class MusicGame {
         this.canvas = ctx.canvas;
         this.onExit = onExit;
         this.isRunning = true;
+        this.particles = [];
+        this.flyingNotes = [];
+        this.time = 0;
         
-        // Stelle sicher, dass Audio läuft
-        await audioManager.ensureRunning();
+        this.generateStars();
+        this.setupInstrument();
         
-        // UI Setup
-        this.setupInstrumentButtons();
-        this.setupKeys();
-        
-        // Event Listener
         this.canvas.addEventListener('click', this.handleClick);
-        this.canvas.addEventListener('touchstart', this.handleTouchStart);
-        this.canvas.addEventListener('touchmove', this.handleTouchMove);
-        this.canvas.addEventListener('touchend', this.handleTouchEnd);
+        this.canvas.addEventListener('touchstart', this.handleClick);
         
-        // Render-Loop
         this.gameLoop();
     }
     
     stop() {
         this.isRunning = false;
         this.canvas.removeEventListener('click', this.handleClick);
-        this.canvas.removeEventListener('touchstart', this.handleTouchStart);
-        this.canvas.removeEventListener('touchmove', this.handleTouchMove);
-        this.canvas.removeEventListener('touchend', this.handleTouchEnd);
+        this.canvas.removeEventListener('touchstart', this.handleClick);
     }
     
-    setupInstrumentButtons() {
-        const buttonWidth = 80;
-        const buttonHeight = 80;
-        const spacing = 20;
-        const totalWidth = (buttonWidth + spacing) * this.instruments.length - spacing;
-        const startX = (this.canvas.width - totalWidth) / 2;
-        const y = 40;
-        
-        this.instrumentButtons = this.instruments.map((instrument, i) => ({
-            ...instrument,
-            x: startX + i * (buttonWidth + spacing),
-            y: y,
-            width: buttonWidth,
-            height: buttonHeight,
-            scale: 1
-        }));
+    generateStars() {
+        this.stars = [];
+        for (let i = 0; i < 80; i++) {
+            this.stars.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height,
+                size: Math.random() * 2.5 + 0.5,
+                twinkle: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.04
+            });
+        }
     }
     
-    setupKeys() {
+    setupInstrument() {
         this.keys = [];
         
         if (this.currentInstrument === 'piano') {
-            // Klavier: 8 bunte Tasten (C, D, E, F, G, A, H, C)
-            const keyWidth = Math.min(80, this.canvas.width / 9);
+            const notes = ['C', 'D', 'E', 'F', 'G', 'A', 'B', 'C2'];
+            const frequencies = [261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88, 523.25];
+            const keyWidth = (this.canvas.width - 50) / notes.length;
             const keyHeight = 180;
-            const startX = (this.canvas.width - keyWidth * 8) / 2;
-            const y = this.canvas.height - keyHeight - 40;
+            const startY = this.canvas.height - keyHeight - 50;
             
-            const notes = [
-                { note: 'C', freq: 261.63, color: '#ef4444' },
-                { note: 'D', freq: 293.66, color: '#f59e0b' },
-                { note: 'E', freq: 329.63, color: '#fbbf24' },
-                { note: 'F', freq: 349.23, color: '#84cc16' },
-                { note: 'G', freq: 392.00, color: '#10b981' },
-                { note: 'A', freq: 440.00, color: '#3b82f6' },
-                { note: 'H', freq: 493.88, color: '#8b5cf6' },
-                { note: 'C', freq: 523.25, color: '#ec4899' }
-            ];
-            
-            this.keys = notes.map((note, i) => ({
-                ...note,
-                x: startX + i * keyWidth,
-                y: y,
-                width: keyWidth - 4,
-                height: keyHeight,
-                pressed: false
-            }));
-            
-        } else if (this.currentInstrument === 'guitar') {
-            // Gitarre: 6 Saiten
-            const stringHeight = 50;
-            const startY = 200;
-            
-            const strings = [
-                { note: 'E', freq: 329.63, color: '#ef4444' },
-                { note: 'A', freq: 220.00, color: '#f59e0b' },
-                { note: 'D', freq: 146.83, color: '#fbbf24' },
-                { note: 'G', freq: 196.00, color: '#10b981' },
-                { note: 'H', freq: 246.94, color: '#3b82f6' },
-                { note: 'E', freq: 82.41, color: '#8b5cf6' }
-            ];
-            
-            this.keys = strings.map((string, i) => ({
-                ...string,
-                x: 50,
-                y: startY + i * stringHeight,
-                width: this.canvas.width - 100,
-                height: stringHeight - 10,
-                pressed: false
-            }));
-            
+            for (let i = 0; i < notes.length; i++) {
+                const hue = (i / notes.length) * 300;
+                this.keys.push({
+                    x: 25 + i * keyWidth,
+                    y: startY,
+                    width: keyWidth - 8,
+                    height: keyHeight,
+                    note: notes[i],
+                    frequency: frequencies[i],
+                    color: `hsl(${hue}, 100%, 50%)`,
+                    glow: `hsl(${hue}, 100%, 60%)`,
+                    pressed: false,
+                    pressAnim: 0,
+                    glowAnim: Math.random() * Math.PI * 2
+                });
+            }
         } else if (this.currentInstrument === 'drums') {
-            // Schlagzeug: 6 verschiedene Drums
-            const drumSize = Math.min(120, (this.canvas.width - 60) / 3);
-            const startX = (this.canvas.width - drumSize * 3 - 40) / 2;
-            
             const drums = [
-                { note: 'Kick', freq: 60, color: '#ef4444', emoji: '🥁' },
-                { note: 'Snare', freq: 200, color: '#f59e0b', emoji: '🥁' },
-                { note: 'Tom', freq: 150, color: '#fbbf24', emoji: '🥁' },
-                { note: 'Hi-Hat', freq: 800, color: '#10b981', emoji: '🎵' },
-                { note: 'Crash', freq: 1000, color: '#3b82f6', emoji: '💥' },
-                { note: 'Ride', freq: 900, color: '#8b5cf6', emoji: '✨' }
+                { name: '🥁', freq: 100, color: '#ff0055' },
+                { name: '🔔', freq: 800, color: '#00ffff' },
+                { name: '🎵', freq: 400, color: '#00ff88' },
+                { name: '⚡', freq: 200, color: '#ffff00' }
             ];
+            const drumSize = 90;
+            const spacing = 30;
+            const totalWidth = drums.length * drumSize + (drums.length - 1) * spacing;
+            const startX = (this.canvas.width - totalWidth) / 2;
+            const startY = this.canvas.height - 200;
             
-            this.keys = drums.map((drum, i) => {
-                const row = Math.floor(i / 3);
-                const col = i % 3;
-                return {
-                    ...drum,
-                    x: startX + col * (drumSize + 20),
-                    y: 200 + row * (drumSize + 20),
+            for (let i = 0; i < drums.length; i++) {
+                this.keys.push({
+                    x: startX + i * (drumSize + spacing),
+                    y: startY,
                     width: drumSize,
                     height: drumSize,
-                    pressed: false
-                };
-            });
-            
+                    note: drums[i].name,
+                    frequency: drums[i].freq,
+                    color: drums[i].color,
+                    glow: drums[i].color,
+                    isDrum: true,
+                    pressed: false,
+                    pressAnim: 0,
+                    glowAnim: Math.random() * Math.PI * 2
+                });
+            }
         } else if (this.currentInstrument === 'xylophone') {
-            // Xylophon: 8 bunte Stäbe
-            const barWidth = Math.min(60, this.canvas.width / 9);
-            const barHeight = 150;
-            const startX = (this.canvas.width - barWidth * 8) / 2;
-            const baseY = this.canvas.height - 200;
+            const notes = ['C', 'D', 'E', 'F', 'G', 'A'];
+            const frequencies = [523.25, 587.33, 659.25, 698.46, 783.99, 880.00];
+            const barWidth = (this.canvas.width - 80) / notes.length;
+            const startY = this.canvas.height - 220;
             
-            const notes = [
-                { note: 'C', freq: 523.25, color: '#ef4444', height: 1.0 },
-                { note: 'D', freq: 587.33, color: '#f59e0b', height: 0.9 },
-                { note: 'E', freq: 659.25, color: '#fbbf24', height: 0.8 },
-                { note: 'F', freq: 698.46, color: '#84cc16', height: 0.7 },
-                { note: 'G', freq: 783.99, color: '#10b981', height: 0.6 },
-                { note: 'A', freq: 880.00, color: '#3b82f6', height: 0.7 },
-                { note: 'H', freq: 987.77, color: '#8b5cf6', height: 0.8 },
-                { note: 'C', freq: 1046.50, color: '#ec4899', height: 0.9 }
-            ];
-            
-            this.keys = notes.map((note, i) => ({
-                ...note,
-                x: startX + i * barWidth,
-                y: baseY - (note.height * barHeight - barHeight * 0.6),
-                width: barWidth - 4,
-                height: note.height * barHeight,
-                pressed: false
-            }));
+            for (let i = 0; i < notes.length; i++) {
+                const barHeight = 140 - i * 12;
+                const hue = (i / notes.length) * 300;
+                this.keys.push({
+                    x: 40 + i * barWidth,
+                    y: startY + (140 - barHeight) / 2,
+                    width: barWidth - 15,
+                    height: barHeight,
+                    note: notes[i],
+                    frequency: frequencies[i],
+                    color: `hsl(${hue}, 100%, 50%)`,
+                    glow: `hsl(${hue}, 100%, 60%)`,
+                    isBar: true,
+                    pressed: false,
+                    pressAnim: 0,
+                    glowAnim: Math.random() * Math.PI * 2
+                });
+            }
         }
     }
     
     handleClick = (e) => {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        
-        this.handleInteraction(x, y);
-    }
-    
-    handleTouchStart = (e) => {
         e.preventDefault();
         const rect = this.canvas.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
         
-        for (let touch of e.touches) {
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
-            this.handleInteraction(x, y, touch.identifier);
-        }
-    }
-    
-    handleTouchMove = (e) => {
-        e.preventDefault();
-        const rect = this.canvas.getBoundingClientRect();
+        // Instrument wechseln
+        const instY = 100;
+        const instSpacing = 80;
+        const startX = (this.canvas.width - this.instruments.length * instSpacing) / 2;
         
-        for (let touch of e.touches) {
-            const x = touch.clientX - rect.left;
-            const y = touch.clientY - rect.top;
-            this.handleInteraction(x, y, touch.identifier);
-        }
-    }
-    
-    handleTouchEnd = (e) => {
-        e.preventDefault();
-        // Alle gepressten Tasten zurücksetzen
-        this.keys.forEach(key => key.pressed = false);
-        this.activeNotes.clear();
-    }
-    
-    handleInteraction(x, y, touchId = null) {
-        // Instrument-Buttons prüfen
-        for (let button of this.instrumentButtons) {
-            if (x >= button.x && x <= button.x + button.width &&
-                y >= button.y && y <= button.y + button.height) {
-                
-                if (this.currentInstrument !== button.id) {
-                    this.currentInstrument = button.id;
-                    this.setupKeys();
-                    this.createSwitchParticles(button.x + button.width / 2, button.y + button.height / 2, button.color);
-                    this.playClickSound();
-                }
+        for (let i = 0; i < this.instruments.length; i++) {
+            const instX = startX + i * instSpacing;
+            if (x >= instX && x <= instX + 60 && y >= instY - 30 && y <= instY + 30) {
+                this.currentInstrument = this.instruments[i].id;
+                this.setupInstrument();
+                this.createSwitchParticles(instX + 30, instY);
                 return;
             }
         }
         
-        // Tasten/Instrumente prüfen
+        // Tasten spielen
         for (let key of this.keys) {
-            if (x >= key.x && x <= key.x + key.width &&
-                y >= key.y && y <= key.y + key.height) {
-                
-                const noteId = `${key.note}-${key.freq}`;
-                
-                // Verhindere mehrfaches Abspielen derselben Note
-                if (!this.activeNotes.has(noteId)) {
-                    this.activeNotes.add(noteId);
-                    key.pressed = true;
-                    
-                    setTimeout(() => {
-                        key.pressed = false;
-                        if (!touchId) {
-                            this.activeNotes.delete(noteId);
-                        }
-                    }, 200);
-                    
-                    this.playNote(key.freq, this.currentInstrument);
-                    this.createNoteParticles(x, y, key.color);
-                    this.createFlyingNote(x, y, key.emoji || key.note);
-                }
-                return;
+            if (x >= key.x && x <= key.x + key.width && y >= key.y && y <= key.y + key.height) {
+                this.playKey(key);
+                break;
             }
         }
     }
     
-    playNote(frequency, instrument) {
-        audioManager.playNote(frequency, instrument);
+    playKey(key) {
+        key.pressed = true;
+        key.pressAnim = 1;
+        
+        audioManager.playNote(key.frequency, this.currentInstrument === 'drums' ? 'square' : 'sine', 0.3);
+        this.createNoteParticles(key.x + key.width / 2, key.y);
+        this.createFlyingNote(key.x + key.width / 2, key.y, key.color);
+        
+        setTimeout(() => {
+            key.pressed = false;
+        }, 150);
     }
     
-    playClickSound() {
-        audioManager.playClickSound();
-    }
-    
-    createNoteParticles(x, y, color) {
+    createNoteParticles(x, y) {
         for (let i = 0; i < 15; i++) {
-            const angle = (Math.PI * 2 * i) / 15;
-            const speed = 2 + Math.random() * 3;
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
-                life: 1,
-                color: color,
-                size: 3 + Math.random() * 4
-            });
-        }
-    }
-    
-    createSwitchParticles(x, y, color) {
-        for (let i = 0; i < 20; i++) {
-            const angle = (Math.PI * 2 * i) / 20;
+            const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 0.8;
             const speed = 3 + Math.random() * 4;
             this.particles.push({
-                x: x,
-                y: y,
+                x, y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 1,
-                color: color,
-                size: 4 + Math.random() * 5
+                color: ['#ff00ff', '#00ffff', '#ffff00'][Math.floor(Math.random() * 3)],
+                size: 4 + Math.random() * 4
             });
         }
     }
     
-    createFlyingNote(x, y, text) {
-        this.notes.push({
-            x: x,
-            y: y,
-            text: text,
+    createSwitchParticles(x, y) {
+        for (let i = 0; i < 20; i++) {
+            const angle = (Math.PI * 2 * i) / 20;
+            const speed = 2 + Math.random() * 3;
+            this.particles.push({
+                x, y,
+                vx: Math.cos(angle) * speed,
+                vy: Math.sin(angle) * speed,
+                life: 1,
+                color: '#ffffff',
+                size: 3 + Math.random() * 3
+            });
+        }
+    }
+    
+    createFlyingNote(x, y, color) {
+        const notes = ['♪', '♫', '♬', '🎵', '🎶'];
+        this.flyingNotes.push({
+            x, y,
+            vx: (Math.random() - 0.5) * 2,
+            vy: -2 - Math.random() * 2,
+            note: notes[Math.floor(Math.random() * notes.length)],
+            color,
             life: 1,
-            vy: -2
+            rotation: 0,
+            rotationSpeed: (Math.random() - 0.5) * 0.1
         });
     }
     
     gameLoop = () => {
         if (!this.isRunning) return;
-        
+        this.time += 0.016;
         this.render();
-        
         requestAnimationFrame(this.gameLoop);
     }
     
     render() {
-        // Hintergrund mit Verlauf
+        // 🌌 COSMIC HINTERGRUND
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#f0f9ff');
-        gradient.addColorStop(1, '#e0e7ff');
+        gradient.addColorStop(0, '#0a0030');
+        gradient.addColorStop(0.5, '#150050');
+        gradient.addColorStop(1, '#0a0030');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Musikalische Dekoration im Hintergrund
-        this.ctx.globalAlpha = 0.1;
-        this.ctx.font = '60px Arial';
-        for (let i = 0; i < 8; i++) {
-            this.ctx.fillText('♪', 50 + i * 100, 150 + Math.sin(Date.now() * 0.001 + i) * 20);
-            this.ctx.fillText('♫', 80 + i * 100, 180 + Math.cos(Date.now() * 0.001 + i) * 20);
+        // Sterne
+        for (let star of this.stars) {
+            star.twinkle += star.speed;
+            const alpha = 0.3 + Math.sin(star.twinkle) * 0.5;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
         }
-        this.ctx.globalAlpha = 1;
+        
+        // Nebel
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.08;
+        const nebulaX = this.canvas.width / 2 + Math.sin(this.time * 0.3) * 50;
+        const nebulaY = this.canvas.height * 0.4;
+        const nebulaGrad = this.ctx.createRadialGradient(nebulaX, nebulaY, 0, nebulaX, nebulaY, 300);
+        nebulaGrad.addColorStop(0, '#ff00ff');
+        nebulaGrad.addColorStop(0.5, '#8800ff');
+        nebulaGrad.addColorStop(1, 'transparent');
+        this.ctx.fillStyle = nebulaGrad;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
         
         // Titel
         this.ctx.save();
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-        this.ctx.shadowBlur = 5;
-        this.ctx.fillStyle = '#1e293b';
-        this.ctx.font = 'bold 36px sans-serif';
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 30;
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.font = 'bold 32px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🎵 Musik machen 🎵', this.canvas.width / 2, 40);
+        this.ctx.fillText('🎹 Cosmic Music! 🎹', this.canvas.width / 2, 45);
         this.ctx.restore();
         
-        // Instrument-Buttons zeichnen
-        for (let button of this.instrumentButtons) {
-            this.drawInstrumentButton(button);
+        // Instrument Auswahl
+        const instY = 100;
+        const instSpacing = 80;
+        const startX = (this.canvas.width - this.instruments.length * instSpacing) / 2;
+        
+        for (let i = 0; i < this.instruments.length; i++) {
+            const inst = this.instruments[i];
+            const instX = startX + i * instSpacing;
+            const isActive = this.currentInstrument === inst.id;
+            
+            this.ctx.save();
+            
+            if (isActive) {
+                this.ctx.shadowColor = inst.color;
+                this.ctx.shadowBlur = 20;
+            }
+            
+            // Button
+            const btnGrad = this.ctx.createLinearGradient(instX, instY - 25, instX, instY + 25);
+            if (isActive) {
+                btnGrad.addColorStop(0, inst.color);
+                btnGrad.addColorStop(1, this.darkenColor(inst.color, 0.4));
+            } else {
+                btnGrad.addColorStop(0, '#333');
+                btnGrad.addColorStop(1, '#111');
+            }
+            
+            this.ctx.fillStyle = btnGrad;
+            this.ctx.beginPath();
+            this.ctx.roundRect(instX, instY - 25, 60, 50, 12);
+            this.ctx.fill();
+            
+            this.ctx.strokeStyle = isActive ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.2)';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+            
+            // Emoji
+            this.ctx.shadowBlur = 0;
+            this.ctx.font = '28px Arial';
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(inst.name, instX + 30, instY);
+            
+            this.ctx.restore();
         }
         
-        // Aktives Instrument Name
-        const activeInstrument = this.instruments.find(i => i.id === this.currentInstrument);
-        this.ctx.save();
-        this.ctx.fillStyle = '#64748b';
-        this.ctx.font = 'bold 24px sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(`Aktuell: ${activeInstrument.name} ${activeInstrument.emoji}`, this.canvas.width / 2, 160);
-        this.ctx.restore();
-        
-        // Tasten/Instrumente zeichnen
+        // Tasten/Drums/Xylophone
         for (let key of this.keys) {
-            this.drawKey(key);
+            this.ctx.save();
+            
+            key.glowAnim += 0.04;
+            if (key.pressAnim > 0) key.pressAnim -= 0.1;
+            
+            const glowIntensity = key.pressed ? 30 : (12 + Math.sin(key.glowAnim) * 6);
+            const pressOffset = key.pressAnim * 5;
+            
+            this.ctx.shadowColor = key.glow;
+            this.ctx.shadowBlur = glowIntensity;
+            
+            const grad = this.ctx.createLinearGradient(key.x, key.y, key.x, key.y + key.height);
+            grad.addColorStop(0, this.lightenColor(key.color, 0.3));
+            grad.addColorStop(0.5, key.color);
+            grad.addColorStop(1, this.darkenColor(key.color, 0.3));
+            
+            this.ctx.fillStyle = grad;
+            
+            if (key.isDrum) {
+                // Drum
+                this.ctx.beginPath();
+                this.ctx.arc(key.x + key.width / 2, key.y + key.height / 2 + pressOffset, key.width / 2, 0, Math.PI * 2);
+                this.ctx.fill();
+                
+                this.ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+                this.ctx.lineWidth = 3;
+                this.ctx.stroke();
+                
+                // Emoji
+                this.ctx.shadowBlur = 0;
+                this.ctx.font = `${key.width * 0.5}px Arial`;
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(key.note, key.x + key.width / 2, key.y + key.height / 2 + pressOffset);
+            } else {
+                // Piano/Xylophone Taste
+                this.ctx.beginPath();
+                this.ctx.roundRect(key.x, key.y + pressOffset, key.width, key.height, key.isBar ? 8 : [8, 8, 15, 15]);
+                this.ctx.fill();
+                
+                this.ctx.strokeStyle = 'rgba(255,255,255,0.3)';
+                this.ctx.lineWidth = 2;
+                this.ctx.stroke();
+                
+                // Highlight
+                this.ctx.shadowBlur = 0;
+                this.ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                this.ctx.beginPath();
+                this.ctx.roundRect(key.x + 5, key.y + pressOffset + 5, key.width - 10, key.height * 0.3, 5);
+                this.ctx.fill();
+                
+                // Note
+                this.ctx.fillStyle = '#ffffff';
+                this.ctx.font = 'bold 18px sans-serif';
+                this.ctx.textAlign = 'center';
+                this.ctx.fillText(key.note, key.x + key.width / 2, key.y + key.height - 20 + pressOffset);
+            }
+            
+            this.ctx.restore();
         }
         
-        // Partikel zeichnen
+        // Fliegende Noten
+        for (let i = this.flyingNotes.length - 1; i >= 0; i--) {
+            const note = this.flyingNotes[i];
+            note.x += note.vx;
+            note.y += note.vy;
+            note.rotation += note.rotationSpeed;
+            note.life -= 0.015;
+            
+            if (note.life > 0) {
+                this.ctx.save();
+                this.ctx.translate(note.x, note.y);
+                this.ctx.rotate(note.rotation);
+                this.ctx.globalAlpha = note.life;
+                this.ctx.shadowColor = note.color;
+                this.ctx.shadowBlur = 15;
+                this.ctx.font = '30px Arial';
+                this.ctx.textAlign = 'center';
+                this.ctx.textBaseline = 'middle';
+                this.ctx.fillText(note.note, 0, 0);
+                this.ctx.restore();
+            } else {
+                this.flyingNotes.splice(i, 1);
+            }
+        }
+        
+        // Partikel
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.life -= 0.02;
+            p.x += p.vx; p.y += p.vy; p.vy += 0.05; p.life -= 0.025;
             
             if (p.life > 0) {
                 this.ctx.fillStyle = p.color;
+                this.ctx.shadowColor = p.color;
+                this.ctx.shadowBlur = 10;
                 this.ctx.globalAlpha = p.life;
                 this.ctx.beginPath();
                 this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
                 this.ctx.fill();
                 this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
             } else {
                 this.particles.splice(i, 1);
             }
         }
         
-        // Fliegende Noten zeichnen
-        for (let i = this.notes.length - 1; i >= 0; i--) {
-            const note = this.notes[i];
-            note.y += note.vy;
-            note.life -= 0.01;
-            
-            if (note.life > 0) {
-                this.ctx.save();
-                this.ctx.globalAlpha = note.life;
-                this.ctx.font = 'bold 32px sans-serif';
-                this.ctx.textAlign = 'center';
-                this.ctx.fillStyle = '#1e293b';
-                this.ctx.fillText(note.text, note.x, note.y);
-                this.ctx.restore();
-            } else {
-                this.notes.splice(i, 1);
-            }
-        }
-    }
-    
-    drawInstrumentButton(button) {
+        // Anleitung
         this.ctx.save();
-        
-        const isActive = button.id === this.currentInstrument;
-        
-        // Schatten
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-        this.ctx.shadowBlur = isActive ? 20 : 10;
-        this.ctx.shadowOffsetY = 5;
-        
-        // Button-Hintergrund
-        const gradient = this.ctx.createLinearGradient(
-            button.x, button.y,
-            button.x, button.y + button.height
-        );
-        gradient.addColorStop(0, this.lightenColor(button.color, 20));
-        gradient.addColorStop(1, button.color);
-        
-        this.ctx.fillStyle = gradient;
-        this.ctx.beginPath();
-        this.ctx.roundRect(button.x, button.y, button.width, button.height, 15);
-        this.ctx.fill();
-        
-        this.ctx.shadowBlur = 0;
-        
-        // Aktiver Rand
-        if (isActive) {
-            this.ctx.strokeStyle = '#fbbf24';
-            this.ctx.lineWidth = 4;
-            this.ctx.stroke();
-        } else {
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            this.ctx.lineWidth = 2;
-            this.ctx.stroke();
-        }
-        
-        // Emoji
-        this.ctx.font = '40px Arial';
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.shadowBlur = 10;
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 18px sans-serif';
         this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(button.emoji, button.x + button.width / 2, button.y + button.height / 2 - 5);
-        
-        // Name
-        this.ctx.font = 'bold 12px sans-serif';
-        this.ctx.fillStyle = 'white';
-        this.ctx.fillText(button.name, button.x + button.width / 2, button.y + button.height - 12);
-        
+        this.ctx.fillText('Tippe auf die Tasten! 🎵', this.canvas.width / 2, 160);
         this.ctx.restore();
     }
     
-    drawKey(key) {
-        this.ctx.save();
-        
-        const scale = key.pressed ? 0.95 : 1;
-        
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = key.pressed ? 5 : 15;
-        this.ctx.shadowOffsetY = key.pressed ? 2 : 8;
-        
-        // Taste mit Verlauf
-        const gradient = this.ctx.createLinearGradient(
-            key.x, key.y,
-            key.x, key.y + key.height
-        );
-        gradient.addColorStop(0, this.lightenColor(key.color, 30));
-        gradient.addColorStop(1, key.color);
-        
-        this.ctx.fillStyle = gradient;
-        
-        const centerX = key.x + key.width / 2;
-        const centerY = key.y + key.height / 2;
-        
-        this.ctx.translate(centerX, centerY);
-        this.ctx.scale(scale, scale);
-        this.ctx.translate(-centerX, -centerY);
-        
-        if (this.currentInstrument === 'drums') {
-            // Runde Drums
-            this.ctx.beginPath();
-            this.ctx.arc(centerX, centerY, key.width / 2, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            this.ctx.shadowBlur = 0;
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            this.ctx.lineWidth = 4;
-            this.ctx.stroke();
-            
-            // Emoji auf Drum
-            if (key.emoji) {
-                this.ctx.font = `${key.width * 0.4}px Arial`;
-                this.ctx.textAlign = 'center';
-                this.ctx.textBaseline = 'middle';
-                this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-                this.ctx.fillText(key.emoji, centerX, centerY);
+    lightenColor(color, factor) {
+        if (color.startsWith('hsl')) {
+            const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            if (match) {
+                const h = parseInt(match[1]);
+                const s = parseInt(match[2]);
+                const l = Math.min(100, parseInt(match[3]) + factor * 50);
+                return `hsl(${h}, ${s}%, ${l}%)`;
             }
-        } else {
-            // Rechteckige Tasten
-            this.ctx.beginPath();
-            this.ctx.roundRect(key.x, key.y, key.width, key.height, 10);
-            this.ctx.fill();
-            
-            this.ctx.shadowBlur = 0;
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
-            this.ctx.lineWidth = 3;
-            this.ctx.stroke();
         }
-        
-        // Notennamen
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-        this.ctx.font = 'bold 20px sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.fillText(key.note, centerX, centerY);
-        
-        this.ctx.restore();
+        if (color.startsWith('#')) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.min(255, ((num >> 16) & 255) + (255 - ((num >> 16) & 255)) * factor);
+            const g = Math.min(255, ((num >> 8) & 255) + (255 - ((num >> 8) & 255)) * factor);
+            const b = Math.min(255, (num & 255) + (255 - (num & 255)) * factor);
+            return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+        }
+        return color;
     }
     
-    lightenColor(color, percent) {
-        const num = parseInt(color.replace("#",""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = Math.min(255, (num >> 16) + amt);
-        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-        const B = Math.min(255, (num & 0x0000FF) + amt);
-        return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    darkenColor(color, factor) {
+        if (color.startsWith('hsl')) {
+            const match = color.match(/hsl\((\d+),\s*(\d+)%,\s*(\d+)%\)/);
+            if (match) {
+                const h = parseInt(match[1]);
+                const s = parseInt(match[2]);
+                const l = Math.max(0, parseInt(match[3]) - factor * 50);
+                return `hsl(${h}, ${s}%, ${l}%)`;
+            }
+        }
+        if (color.startsWith('#')) {
+            const num = parseInt(color.replace('#', ''), 16);
+            const r = Math.floor(((num >> 16) & 255) * (1 - factor));
+            const g = Math.floor(((num >> 8) & 255) * (1 - factor));
+            const b = Math.floor((num & 255) * (1 - factor));
+            return `rgb(${r}, ${g}, ${b})`;
+        }
+        return color;
     }
 }
-

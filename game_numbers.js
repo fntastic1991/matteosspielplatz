@@ -1,36 +1,20 @@
-// game_numbers.js - Zahlen entdecken Spiel
+// game_numbers.js - 🌌 COSMIC Zahlen-Spiel
 import { audioManager } from './audio_utils.js';
 
 export class NumbersGame {
     constructor() {
+        this.numbers = [];
+        this.currentNumber = 1;
+        this.maxNumber = 5;
         this.isRunning = false;
         this.canvas = null;
         this.ctx = null;
         this.onExit = null;
-        
-        this.circles = [];
-        this.currentNumber = 1;
-        this.maxNumber = 5;
         this.level = 1;
-        this.totalLevels = 10;
-        
-        // Visuelle Effekte
+        this.maxLevel = 10;
         this.particles = [];
         this.stars = [];
-        this.successAnimation = 0;
-        this.confetti = [];
-        
-        // Farben für die Zahlen-Kreise
-        this.colors = [
-            '#ef4444', // Rot
-            '#3b82f6', // Blau
-            '#10b981', // Grün
-            '#fbbf24', // Gelb
-            '#a855f7', // Lila
-            '#ec4899', // Rosa
-            '#f97316', // Orange
-            '#14b8a6'  // Türkis
-        ];
+        this.time = 0;
     }
     
     async start(ctx, onExit) {
@@ -40,499 +24,381 @@ export class NumbersGame {
         this.isRunning = true;
         this.level = 1;
         this.particles = [];
-        this.confetti = [];
-        this.successAnimation = 0;
+        this.time = 0;
         
-        // Dekorative Sterne generieren
         this.generateStars();
+        this.generateLevel();
         
-        // Level erstellen
-        this.createLevel();
-        
-        // Touch/Click Event
         this.canvas.addEventListener('click', this.handleClick);
-        this.canvas.addEventListener('touchstart', this.handleTouch);
+        this.canvas.addEventListener('touchstart', this.handleClick);
         
-        // Render-Loop
-        this.render();
+        this.gameLoop();
     }
     
     stop() {
         this.isRunning = false;
         this.canvas.removeEventListener('click', this.handleClick);
-        this.canvas.removeEventListener('touchstart', this.handleTouch);
+        this.canvas.removeEventListener('touchstart', this.handleClick);
     }
     
     generateStars() {
         this.stars = [];
-        for (let i = 0; i < 30; i++) {
+        for (let i = 0; i < 100; i++) {
             this.stars.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
-                size: 1 + Math.random() * 2,
-                opacity: Math.random(),
-                speed: 0.5 + Math.random() * 0.5
+                size: Math.random() * 2.5 + 0.5,
+                twinkle: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.04
             });
         }
     }
     
-    createLevel() {
-        this.circles = [];
+    generateLevel() {
+        this.maxNumber = Math.min(5 + this.level, 12);
         this.currentNumber = 1;
+        this.numbers = [];
         
-        // Schwierigkeit steigt mit Level
-        if (this.level <= 3) {
-            this.maxNumber = 3;
-        } else if (this.level <= 6) {
-            this.maxNumber = 4;
-        } else {
-            this.maxNumber = 5;
-        }
+        const circleSize = Math.min(60, (this.canvas.width - 80) / 4);
+        const colors = [
+            { hex: '#ff0055', glow: '#ff0055' },
+            { hex: '#00ffff', glow: '#00ffff' },
+            { hex: '#00ff88', glow: '#00ff88' },
+            { hex: '#ffff00', glow: '#ffff00' },
+            { hex: '#ff00ff', glow: '#ff00ff' },
+            { hex: '#ff8800', glow: '#ff8800' }
+        ];
         
-        // Zahlen-Kreise erstellen
-        const positions = this.generateRandomPositions(this.maxNumber);
-        
-        for (let i = 0; i < this.maxNumber; i++) {
-            this.circles.push({
-                number: i + 1,
-                x: positions[i].x,
-                y: positions[i].y,
-                radius: 60,
-                color: this.colors[i % this.colors.length],
-                completed: false,
-                scale: 1,
-                pulse: Math.random() * Math.PI * 2
-            });
-        }
-    }
-    
-    generateRandomPositions(count) {
         const positions = [];
-        const margin = 100;
-        const minDistance = 150;
-        const maxAttempts = 100;
-        
-        for (let i = 0; i < count; i++) {
-            let validPosition = false;
+        for (let i = 1; i <= this.maxNumber; i++) {
+            let x, y, valid;
             let attempts = 0;
-            let x, y;
             
-            while (!validPosition && attempts < maxAttempts) {
-                x = margin + Math.random() * (this.canvas.width - margin * 2);
-                y = margin + 120 + Math.random() * (this.canvas.height - margin * 2 - 120);
-                
-                validPosition = true;
-                
-                // Prüfe Abstand zu anderen Kreisen
-                for (let pos of positions) {
-                    const dx = x - pos.x;
-                    const dy = y - pos.y;
-                    const distance = Math.sqrt(dx * dx + dy * dy);
-                    
-                    if (distance < minDistance) {
-                        validPosition = false;
-                        break;
-                    }
-                }
-                
+            do {
+                x = circleSize + Math.random() * (this.canvas.width - circleSize * 2);
+                y = 180 + Math.random() * (this.canvas.height - 280);
+                valid = positions.every(pos => Math.sqrt((x - pos.x) ** 2 + (y - pos.y) ** 2) > circleSize * 1.8);
                 attempts++;
-            }
+            } while (!valid && attempts < 50);
             
             positions.push({ x, y });
+            const color = colors[Math.floor(Math.random() * colors.length)];
+            
+            this.numbers.push({
+                value: i, x, y,
+                radius: circleSize / 2,
+                color: color,
+                found: false,
+                scale: 1,
+                glow: Math.random() * Math.PI * 2,
+                pulse: 1
+            });
         }
-        
-        return positions;
-    }
-    
-    getMousePos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    }
-    
-    getTouchPos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        return {
-            x: touch.clientX - rect.left,
-            y: touch.clientY - rect.top
-        };
     }
     
     handleClick = (e) => {
-        const pos = this.getMousePos(e);
-        this.checkCircleClick(pos.x, pos.y);
-    }
-    
-    handleTouch = (e) => {
         e.preventDefault();
-        const pos = this.getTouchPos(e);
-        this.checkCircleClick(pos.x, pos.y);
-    }
-    
-    checkCircleClick(x, y) {
-        for (let circle of this.circles) {
-            if (circle.completed) continue;
-            
-            const dx = x - circle.x;
-            const dy = y - circle.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance <= circle.radius) {
-                if (circle.number === this.currentNumber) {
-                    // Richtig!
-                    circle.completed = true;
-                    this.animateSuccess(circle);
-                    this.createSuccessParticles(circle);
-                    this.playSuccessSound();
-                    this.currentNumber++;
-                    
-                    // Alle Zahlen richtig?
-                    if (this.currentNumber > this.maxNumber) {
-                        this.successAnimation = 1;
-                        this.createLevelCompleteConfetti();
-                        
-                        if (this.level < this.totalLevels) {
-                            this.level++;
-                            setTimeout(() => {
-                                this.successAnimation = 0;
-                                this.createLevel();
-                            }, 2000);
-                        } else {
-                            // Alle Level geschafft!
-                            setTimeout(() => {
-                                this.stop();
-                                if (this.onExit) this.onExit();
-                            }, 2500);
-                        }
-                    }
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        
+        for (let num of this.numbers) {
+            if (num.found) continue;
+            const distance = Math.sqrt((x - num.x) ** 2 + (y - num.y) ** 2);
+            if (distance <= num.radius * num.scale) {
+                if (num.value === this.currentNumber) {
+                    this.handleCorrect(num);
                 } else {
-                    // Falsch!
-                    this.animateShake(circle);
-                    this.playErrorSound();
+                    this.handleWrong(num);
                 }
                 break;
             }
         }
     }
     
-    animateSuccess(circle) {
+    handleCorrect(num) {
+        num.found = true;
+        this.animateSuccess(num);
+        this.createSuccessParticles(num.x, num.y, num.color.hex);
+        audioManager.playSuccessSound();
+        
+        this.currentNumber++;
+        
+        if (this.currentNumber > this.maxNumber) {
+            this.levelComplete();
+        }
+    }
+    
+    handleWrong(num) {
+        this.animateShake(num);
+        audioManager.playErrorSound();
+    }
+    
+    animateSuccess(num) {
         const startTime = Date.now();
         const duration = 500;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
-            if (progress < 0.5) {
-                circle.scale = 1 + progress * 0.6;
-            } else {
-                circle.scale = 1.3 - (progress - 0.5) * 0.6;
-            }
+            num.scale = progress < 0.4 ? 1 + progress * 0.7 : 1.28 - (progress - 0.4) * 0.7;
+            num.pulse = 1 + Math.sin(progress * Math.PI * 4) * 0.2;
             
             if (progress < 1 && this.isRunning) {
                 requestAnimationFrame(animate);
             } else {
-                circle.scale = 1;
+                num.scale = 1;
+                num.pulse = 1;
             }
         };
-        
-        requestAnimationFrame(animate);
+        animate();
     }
     
-    animateShake(circle) {
+    animateShake(num) {
         const startTime = Date.now();
-        const duration = 300;
-        const originalX = circle.x;
+        const duration = 350;
+        const startX = num.x;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
-            circle.x = originalX + Math.sin(progress * Math.PI * 6) * 15 * (1 - progress);
+            num.x = startX + Math.sin(progress * Math.PI * 5) * 12 * (1 - progress);
             
             if (progress < 1 && this.isRunning) {
                 requestAnimationFrame(animate);
             } else {
-                circle.x = originalX;
+                num.x = startX;
             }
         };
-        
-        requestAnimationFrame(animate);
+        animate();
     }
     
-    createSuccessParticles(circle) {
-        for (let i = 0; i < 20; i++) {
-            const angle = (Math.PI * 2 * i) / 20;
-            const speed = 2 + Math.random() * 2;
+    levelComplete() {
+        this.createLevelParticles();
+        
+        setTimeout(() => {
+            if (this.level >= this.maxLevel) {
+                this.stop();
+                if (this.onExit) this.onExit();
+            } else {
+                this.level++;
+                this.generateLevel();
+                audioManager.playLevelUpSound();
+            }
+        }, 1500);
+    }
+    
+    createSuccessParticles(x, y, color) {
+        for (let i = 0; i < 25; i++) {
+            const angle = (Math.PI * 2 * i) / 25;
+            const speed = 3 + Math.random() * 4;
             this.particles.push({
-                x: circle.x,
-                y: circle.y,
+                x, y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 1,
-                color: circle.color,
-                size: 3 + Math.random() * 4
+                life: 1, color,
+                size: 4 + Math.random() * 5
             });
         }
     }
     
-    createLevelCompleteConfetti() {
+    createLevelParticles() {
         for (let i = 0; i < 50; i++) {
-            this.confetti.push({
+            this.particles.push({
                 x: Math.random() * this.canvas.width,
-                y: -20,
-                vx: (Math.random() - 0.5) * 4,
-                vy: Math.random() * 3 + 2,
-                rotation: Math.random() * Math.PI * 2,
-                rotationSpeed: (Math.random() - 0.5) * 0.2,
-                color: this.colors[Math.floor(Math.random() * this.colors.length)],
-                size: 8 + Math.random() * 8,
-                life: 1
+                y: this.canvas.height / 2,
+                vx: (Math.random() - 0.5) * 6,
+                vy: (Math.random() - 0.5) * 6,
+                life: 1,
+                color: ['#ff00ff', '#00ffff', '#ffff00', '#00ff88'][Math.floor(Math.random() * 4)],
+                size: 5 + Math.random() * 6
             });
         }
     }
     
-    playSuccessSound() {
-        audioManager.playSuccessSound();
-    }
-    
-    playErrorSound() {
-        audioManager.playErrorSound();
-    }
-    
-    drawCircle(circle) {
-        this.ctx.save();
-        
-        this.ctx.translate(circle.x, circle.y);
-        this.ctx.scale(circle.scale, circle.scale);
-        
-        // Pulsierender Effekt (nur wenn nicht completed)
-        if (!circle.completed) {
-            circle.pulse += 0.05;
-            const pulseScale = 1 + Math.sin(circle.pulse) * 0.05;
-            this.ctx.scale(pulseScale, pulseScale);
-        }
-        
-        // Schatten
-        this.ctx.shadowColor = circle.completed ? 'rgba(0, 0, 0, 0.2)' : 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 20;
-        this.ctx.shadowOffsetY = 8;
-        
-        // Kreis-Hintergrund mit Verlauf
-        const gradient = this.ctx.createRadialGradient(-20, -20, 0, 0, 0, circle.radius);
-        if (circle.completed) {
-            // Grau wenn completed
-            gradient.addColorStop(0, '#d1d5db');
-            gradient.addColorStop(1, '#9ca3af');
-        } else {
-            gradient.addColorStop(0, this.lightenColor(circle.color, 30));
-            gradient.addColorStop(1, circle.color);
-        }
-        
-        this.ctx.fillStyle = gradient;
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, circle.radius, 0, Math.PI * 2);
-        this.ctx.fill();
-        
-        // Weisser Ring
-        this.ctx.shadowBlur = 0;
-        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-        this.ctx.lineWidth = 4;
-        this.ctx.beginPath();
-        this.ctx.arc(0, 0, circle.radius - 5, 0, Math.PI * 2);
-        this.ctx.stroke();
-        
-        // Glanz-Effekt
-        const glowGradient = this.ctx.createRadialGradient(
-            -circle.radius * 0.3, -circle.radius * 0.3, 0,
-            0, 0, circle.radius
-        );
-        glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
-        glowGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.2)');
-        glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        this.ctx.fillStyle = glowGradient;
-        this.ctx.fill();
-        
-        // Zahl in der Mitte
-        this.ctx.shadowBlur = 0;
-        this.ctx.fillStyle = circle.completed ? '#6b7280' : 'white';
-        this.ctx.font = 'bold 48px sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 5;
-        this.ctx.fillText(circle.number, 0, 0);
-        
-        // Häkchen wenn completed
-        if (circle.completed) {
-            this.ctx.shadowBlur = 0;
-            this.ctx.font = 'bold 40px sans-serif';
-            this.ctx.fillStyle = '#10b981';
-            this.ctx.fillText('✓', 0, -5);
-        }
-        
-        this.ctx.restore();
-    }
-    
-    lightenColor(color, percent) {
-        const num = parseInt(color.replace("#",""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = Math.min(255, (num >> 16) + amt);
-        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-        const B = Math.min(255, (num & 0x0000FF) + amt);
-        return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-    }
-    
-    render = () => {
+    gameLoop = () => {
         if (!this.isRunning) return;
-        
-        // Hintergrund mit Verlauf
+        this.time += 0.016;
+        this.render();
+        requestAnimationFrame(this.gameLoop);
+    }
+    
+    render() {
+        // 🌌 COSMIC HINTERGRUND
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#fef3c7');
-        gradient.addColorStop(1, '#fed7aa');
+        gradient.addColorStop(0, '#0a0025');
+        gradient.addColorStop(0.5, '#150045');
+        gradient.addColorStop(1, '#0a0025');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Dekorative Sterne
+        // Sterne
         for (let star of this.stars) {
-            star.opacity = Math.abs(Math.sin(Date.now() * 0.001 * star.speed));
-            this.ctx.fillStyle = `rgba(245, 158, 11, ${star.opacity * 0.25})`;
+            star.twinkle += star.speed;
+            const alpha = 0.3 + Math.sin(star.twinkle) * 0.5;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             this.ctx.beginPath();
             this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
             this.ctx.fill();
         }
         
+        // Nebel
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.07;
+        const nebulaGrad = this.ctx.createRadialGradient(
+            this.canvas.width * 0.5, this.canvas.height * 0.5, 0,
+            this.canvas.width * 0.5, this.canvas.height * 0.5, 300
+        );
+        nebulaGrad.addColorStop(0, '#ffff00');
+        nebulaGrad.addColorStop(1, 'transparent');
+        this.ctx.fillStyle = nebulaGrad;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
+        
+        // UI
+        this.ctx.save();
+        
         // Titel
-        this.ctx.save();
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        this.ctx.shadowBlur = 5;
-        this.ctx.fillStyle = '#1e293b';
-        this.ctx.font = 'bold 28px sans-serif';
+        this.ctx.shadowColor = '#ffff00';
+        this.ctx.shadowBlur = 30;
+        this.ctx.fillStyle = '#ffff00';
+        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🔢 Tippe die Zahlen der Reihe nach! 🔢', this.canvas.width / 2, 35);
-        this.ctx.restore();
+        this.ctx.fillText('🔢 Zahlen Galaxie! 🔢', this.canvas.width / 2, 35);
         
-        // Level Badge und nächste Zahl
-        this.ctx.save();
-        const badgeX = this.canvas.width / 2 - 80;
-        const badgeY = 70;
-        
-        // Level Badge
-        const badgeGradient = this.ctx.createLinearGradient(badgeX - 60, badgeY - 15, badgeX + 60, badgeY + 15);
-        badgeGradient.addColorStop(0, '#fbbf24');
-        badgeGradient.addColorStop(1, '#f59e0b');
-        this.ctx.fillStyle = badgeGradient;
-        this.ctx.shadowColor = 'rgba(245, 158, 11, 0.5)';
+        // Level
+        this.ctx.shadowColor = '#ff00ff';
         this.ctx.shadowBlur = 15;
-        this.roundRect(badgeX - 60, badgeY - 15, 120, 30, 15);
-        this.ctx.fill();
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.font = 'bold 22px sans-serif';
+        this.ctx.fillText(`Level ${this.level}/${this.maxLevel}`, this.canvas.width / 2, 70);
         
-        this.ctx.shadowBlur = 0;
-        this.ctx.fillStyle = 'white';
+        // Nächste Zahl
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.shadowBlur = 20;
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 26px "Fredoka One", sans-serif';
+        const nextText = this.currentNumber <= this.maxNumber ? `Finde: ${this.currentNumber}` : '🎉 Geschafft!';
+        this.ctx.fillText(nextText, this.canvas.width / 2, 110);
+        
+        // Fortschritt
+        this.ctx.shadowColor = '#00ff88';
+        this.ctx.fillStyle = '#00ff88';
         this.ctx.font = 'bold 18px sans-serif';
-        this.ctx.fillText(`⭐ Level ${this.level}/${this.totalLevels}`, badgeX, badgeY + 5);
-        
-        // Nächste Zahl Anzeige
-        if (this.currentNumber <= this.maxNumber) {
-            const nextX = this.canvas.width / 2 + 80;
-            const nextGradient = this.ctx.createLinearGradient(nextX - 60, badgeY - 15, nextX + 60, badgeY + 15);
-            nextGradient.addColorStop(0, '#34d399');
-            nextGradient.addColorStop(1, '#10b981');
-            this.ctx.fillStyle = nextGradient;
-            this.ctx.shadowColor = 'rgba(16, 185, 129, 0.5)';
-            this.ctx.shadowBlur = 15;
-            this.roundRect(nextX - 60, badgeY - 15, 120, 30, 15);
-            this.ctx.fill();
-            
-            this.ctx.shadowBlur = 0;
-            this.ctx.fillStyle = 'white';
-            this.ctx.fillText(`Nächste: ${this.currentNumber}`, nextX, badgeY + 5);
-        }
+        this.ctx.fillText(`${Math.min(this.currentNumber - 1, this.maxNumber)}/${this.maxNumber} ✨`, this.canvas.width / 2, 145);
         
         this.ctx.restore();
         
-        // Kreise zeichnen
-        for (let circle of this.circles) {
-            this.drawCircle(circle);
+        // Zahlen
+        for (let num of this.numbers) {
+            this.drawNumber(num);
         }
         
-        // Partikel zeichnen
+        // Partikel
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.2; // Gravity
-            p.life -= 0.02;
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
             
             if (p.life > 0) {
                 this.ctx.fillStyle = p.color;
+                this.ctx.shadowColor = p.color;
+                this.ctx.shadowBlur = 12;
                 this.ctx.globalAlpha = p.life;
                 this.ctx.beginPath();
                 this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
                 this.ctx.fill();
                 this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
             } else {
                 this.particles.splice(i, 1);
             }
         }
-        
-        // Konfetti zeichnen
-        for (let i = this.confetti.length - 1; i >= 0; i--) {
-            const c = this.confetti[i];
-            c.x += c.vx;
-            c.y += c.vy;
-            c.vy += 0.3; // Gravity
-            c.rotation += c.rotationSpeed;
-            c.life -= 0.01;
-            
-            if (c.life > 0 && c.y < this.canvas.height + 20) {
-                this.ctx.save();
-                this.ctx.translate(c.x, c.y);
-                this.ctx.rotate(c.rotation);
-                this.ctx.fillStyle = c.color;
-                this.ctx.globalAlpha = c.life;
-                this.ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size);
-                this.ctx.globalAlpha = 1;
-                this.ctx.restore();
-            } else {
-                this.confetti.splice(i, 1);
-            }
-        }
-        
-        // Erfolgsanimation
-        if (this.successAnimation > 0) {
-            this.successAnimation -= 0.015;
-            const scale = 1 + (1 - this.successAnimation) * 0.5;
-            this.ctx.save();
-            this.ctx.globalAlpha = this.successAnimation;
-            this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
-            this.ctx.scale(scale, scale);
-            this.ctx.font = 'bold 60px sans-serif';
-            this.ctx.fillStyle = '#10b981';
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText('🎉 Super! 🎉', 0, 0);
-            this.ctx.restore();
-        }
-        
-        requestAnimationFrame(this.render);
     }
     
-    roundRect(x, y, width, height, radius) {
+    drawNumber(num) {
+        this.ctx.save();
+        
+        num.glow += 0.04;
+        const baseGlow = num.found ? 25 : (15 + Math.sin(num.glow) * 10);
+        const glowIntensity = baseGlow * num.pulse;
+        
+        // Glow
+        this.ctx.shadowColor = num.color.glow;
+        this.ctx.shadowBlur = glowIntensity;
+        
+        // Gradient
+        const grad = this.ctx.createRadialGradient(
+            num.x - num.radius * 0.3, num.y - num.radius * 0.3, 0,
+            num.x, num.y, num.radius * num.scale
+        );
+        
+        if (num.found) {
+            grad.addColorStop(0, 'rgba(150, 150, 150, 0.8)');
+            grad.addColorStop(1, 'rgba(80, 80, 80, 0.6)');
+        } else {
+            grad.addColorStop(0, this.lightenColor(num.color.hex, 0.4));
+            grad.addColorStop(0.6, num.color.hex);
+            grad.addColorStop(1, this.darkenColor(num.color.hex, 0.3));
+        }
+        
+        this.ctx.fillStyle = grad;
         this.ctx.beginPath();
-        this.ctx.moveTo(x + radius, y);
-        this.ctx.lineTo(x + width - radius, y);
-        this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-        this.ctx.lineTo(x + width, y + height - radius);
-        this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        this.ctx.lineTo(x + radius, y + height);
-        this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-        this.ctx.lineTo(x, y + radius);
-        this.ctx.quadraticCurveTo(x, y, x + radius, y);
-        this.ctx.closePath();
+        this.ctx.arc(num.x, num.y, num.radius * num.scale, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Ring
+        if (!num.found && num.value === this.currentNumber) {
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+            this.ctx.lineWidth = 4;
+            this.ctx.beginPath();
+            this.ctx.arc(num.x, num.y, num.radius * num.scale * 1.15, 0, Math.PI * 2);
+            this.ctx.stroke();
+        }
+        
+        // Highlight
+        if (!num.found) {
+            this.ctx.shadowBlur = 0;
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
+            this.ctx.beginPath();
+            this.ctx.ellipse(
+                num.x - num.radius * 0.2, num.y - num.radius * 0.2,
+                num.radius * 0.35 * num.scale, num.radius * 0.2 * num.scale,
+                -0.5, 0, Math.PI * 2
+            );
+            this.ctx.fill();
+        }
+        
+        // Zahl
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillStyle = num.found ? '#666' : '#ffffff';
+        this.ctx.font = `bold ${num.radius * 0.9 * num.scale}px "Fredoka One", sans-serif`;
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.fillText(num.value, num.x, num.y + 3);
+        
+        // Häkchen für gefundene
+        if (num.found) {
+            this.ctx.fillStyle = '#00ff88';
+            this.ctx.font = `${num.radius * 0.6}px Arial`;
+            this.ctx.fillText('✓', num.x + num.radius * 0.5, num.y - num.radius * 0.5);
+        }
+        
+        this.ctx.restore();
+    }
+    
+    lightenColor(hex, factor) {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const r = Math.min(255, ((num >> 16) & 255) + (255 - ((num >> 16) & 255)) * factor);
+        const g = Math.min(255, ((num >> 8) & 255) + (255 - ((num >> 8) & 255)) * factor);
+        const b = Math.min(255, (num & 255) + (255 - (num & 255)) * factor);
+        return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+    }
+    
+    darkenColor(hex, factor) {
+        const num = parseInt(hex.replace('#', ''), 16);
+        const r = Math.floor(((num >> 16) & 255) * (1 - factor));
+        const g = Math.floor(((num >> 8) & 255) * (1 - factor));
+        const b = Math.floor((num & 255) * (1 - factor));
+        return `rgb(${r}, ${g}, ${b})`;
     }
 }
-

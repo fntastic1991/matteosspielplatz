@@ -1,6 +1,6 @@
 // service-worker.js - Offline-Unterstützung
 
-const CACHE_NAME = 'cosmic-arcade-v1';
+const CACHE_NAME = 'cosmic-arcade-v2-games';
 const urlsToCache = [
   '/',
   '/index.html',

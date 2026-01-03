@@ -1,8 +1,5 @@
-// game_shapes.js - Formen sortieren Spiel
-// Grafiken von https://www.svgrepo.com (CC0 lizenziert)
+// game_shapes.js - 🌌 COSMIC Formen sortieren Spiel
 import { audioManager } from './audio_utils.js';
-
-import { loadImageWithFallback } from './main.js';
 
 export class ShapeGame {
     constructor() {
@@ -19,15 +16,15 @@ export class ShapeGame {
         this.currentLevel = 1;
         this.maxLevel = 10;
         this.particles = [];
+        this.stars = [];
         
-        // Alle Form-Definitionen
         this.allShapeTypes = [
-            { type: 'circle', name: 'Kreis', color: '#ef4444' },
-            { type: 'square', name: 'Quadrat', color: '#3b82f6' },
-            { type: 'triangle', name: 'Dreieck', color: '#10b981' },
-            { type: 'star', name: 'Stern', color: '#fbbf24' },
-            { type: 'heart', name: 'Herz', color: '#ec4899' },
-            { type: 'diamond', name: 'Diamant', color: '#8b5cf6' }
+            { type: 'circle', name: 'Kreis', color: '#ff0055' },
+            { type: 'square', name: 'Quadrat', color: '#00ffff' },
+            { type: 'triangle', name: 'Dreieck', color: '#00ff88' },
+            { type: 'star', name: 'Stern', color: '#ffff00' },
+            { type: 'heart', name: 'Herz', color: '#ff00ff' },
+            { type: 'diamond', name: 'Diamant', color: '#8800ff' }
         ];
         
         this.shapeTypes = [];
@@ -40,9 +37,9 @@ export class ShapeGame {
         this.isRunning = true;
         this.currentLevel = 1;
         
+        this.generateStars();
         this.startLevel();
         
-        // Touch/Mouse Events
         this.canvas.addEventListener('mousedown', this.handleMouseDown);
         this.canvas.addEventListener('mousemove', this.handleMouseMove);
         this.canvas.addEventListener('mouseup', this.handleMouseUp);
@@ -50,37 +47,41 @@ export class ShapeGame {
         this.canvas.addEventListener('touchmove', this.handleTouchMove);
         this.canvas.addEventListener('touchend', this.handleTouchEnd);
         
-        // Render-Loop
         this.render();
+    }
+    
+    generateStars() {
+        this.stars = [];
+        for (let i = 0; i < 100; i++) {
+            this.stars.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height,
+                size: Math.random() * 2 + 0.5,
+                twinkle: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.03
+            });
+        }
     }
     
     startLevel() {
         this.completedShapes = 0;
         this.particles = [];
         
-        // Level-spezifische Einstellungen
         if (this.currentLevel <= 2) {
-            // Level 1-2: 3 Formen, 6 Stück
             this.shapeTypes = this.allShapeTypes.slice(0, 3);
             this.totalShapes = 6;
         } else if (this.currentLevel <= 4) {
-            // Level 3-4: 4 Formen, 8 Stück
             this.shapeTypes = this.allShapeTypes.slice(0, 4);
             this.totalShapes = 8;
         } else if (this.currentLevel <= 6) {
-            // Level 5-6: 5 Formen, 10 Stück
             this.shapeTypes = this.allShapeTypes.slice(0, 5);
             this.totalShapes = 10;
         } else {
-            // Level 7-10: 6 Formen, 12 Stück
             this.shapeTypes = this.allShapeTypes.slice(0, 6);
             this.totalShapes = 12;
         }
         
-        // Drop-Zones erstellen
         this.createDropZones();
-        
-        // Formen erstellen
         this.createShapes();
     }
     
@@ -97,9 +98,9 @@ export class ShapeGame {
     createDropZones() {
         this.dropZones = [];
         const numTypes = this.shapeTypes.length;
-        const zoneWidth = Math.min(120, (this.canvas.width - 40) / (numTypes + 0.5));
-        const zoneHeight = 120;
-        const spacing = 15;
+        const zoneWidth = Math.min(115, (this.canvas.width - 50) / (numTypes + 0.5));
+        const zoneHeight = 115;
+        const spacing = 12;
         const totalWidth = (zoneWidth * numTypes) + (spacing * (numTypes - 1));
         const startX = (this.canvas.width - totalWidth) / 2;
         const y = 100;
@@ -113,33 +114,32 @@ export class ShapeGame {
                 type: this.shapeTypes[i].type,
                 name: this.shapeTypes[i].name,
                 color: this.shapeTypes[i].color,
-                hasShape: false
+                hasShape: false,
+                glow: i * 0.5
             });
         }
     }
     
     createShapes() {
         this.shapes = [];
-        const shapeSize = 55;
+        const shapeSize = 50;
         const numTypes = this.shapeTypes.length;
         const cols = Math.min(6, numTypes);
         const rows = Math.ceil(this.totalShapes / cols);
-        const spacing = Math.min(100, (this.canvas.width - 80) / cols);
-        const startY = this.canvas.height - (rows * 90) - 40;
+        const spacing = Math.min(95, (this.canvas.width - 80) / cols);
+        const startY = this.canvas.height - (rows * 85) - 50;
         const startX = (this.canvas.width - (cols * spacing)) / 2 + spacing / 2;
         
-        // Forme verteilt auf alle Typen
         for (let i = 0; i < this.totalShapes; i++) {
             const shapeType = this.shapeTypes[i % numTypes];
             const col = i % cols;
             const row = Math.floor(i / cols);
             
             const x = startX + col * spacing;
-            const y = startY + row * 90;
+            const y = startY + row * 85;
             
             this.shapes.push({
-                x: x,
-                y: y,
+                x, y,
                 size: shapeSize,
                 type: shapeType.type,
                 color: shapeType.color,
@@ -147,83 +147,41 @@ export class ShapeGame {
                 originalY: y,
                 placed: false,
                 dragging: false,
-                scale: 1
+                scale: 1,
+                glow: Math.random() * Math.PI * 2
             });
         }
     }
     
     getMousePos(e) {
         const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
+        return { x: e.clientX - rect.left, y: e.clientY - rect.top };
     }
     
     getTouchPos(e) {
         const rect = this.canvas.getBoundingClientRect();
         const touch = e.touches[0];
-        return {
-            x: touch.clientX - rect.left,
-            y: touch.clientY - rect.top
-        };
+        return { x: touch.clientX - rect.left, y: touch.clientY - rect.top };
     }
     
-    handleMouseDown = (e) => {
-        const pos = this.getMousePos(e);
-        this.startDrag(pos.x, pos.y);
-    }
-    
-    handleMouseMove = (e) => {
-        if (this.draggedShape) {
-            const pos = this.getMousePos(e);
-            this.updateDrag(pos.x, pos.y);
-        }
-    }
-    
-    handleMouseUp = (e) => {
-        const pos = this.getMousePos(e);
-        this.endDrag(pos.x, pos.y);
-    }
-    
-    handleTouchStart = (e) => {
-        e.preventDefault();
-        const pos = this.getTouchPos(e);
-        this.startDrag(pos.x, pos.y);
-    }
-    
-    handleTouchMove = (e) => {
-        e.preventDefault();
-        if (this.draggedShape) {
-            const pos = this.getTouchPos(e);
-            this.updateDrag(pos.x, pos.y);
-        }
-    }
-    
-    handleTouchEnd = (e) => {
-        e.preventDefault();
-        if (this.draggedShape) {
-            this.endDrag(this.draggedShape.x, this.draggedShape.y);
-        }
-    }
+    handleMouseDown = (e) => { this.startDrag(this.getMousePos(e).x, this.getMousePos(e).y); }
+    handleMouseMove = (e) => { if (this.draggedShape) this.updateDrag(this.getMousePos(e).x, this.getMousePos(e).y); }
+    handleMouseUp = (e) => { this.endDrag(this.getMousePos(e).x, this.getMousePos(e).y); }
+    handleTouchStart = (e) => { e.preventDefault(); this.startDrag(this.getTouchPos(e).x, this.getTouchPos(e).y); }
+    handleTouchMove = (e) => { e.preventDefault(); if (this.draggedShape) this.updateDrag(this.getTouchPos(e).x, this.getTouchPos(e).y); }
+    handleTouchEnd = (e) => { e.preventDefault(); if (this.draggedShape) this.endDrag(this.draggedShape.x, this.draggedShape.y); }
     
     startDrag(x, y) {
-        // Finde Form unter dem Mauszeiger (von oben nach unten)
         for (let i = this.shapes.length - 1; i >= 0; i--) {
             const shape = this.shapes[i];
             if (shape.placed) continue;
             
-            const dx = x - shape.x;
-            const dy = y - shape.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance <= shape.size / 2) {
+            const distance = Math.sqrt((x - shape.x) ** 2 + (y - shape.y) ** 2);
+            if (distance <= shape.size / 2 + 10) {
                 this.draggedShape = shape;
-                this.draggedShape.dragging = true;
-                this.dragOffset.x = dx;
-                this.dragOffset.y = dy;
-                
-                // Form nach vorne bringen
+                shape.dragging = true;
+                this.dragOffset.x = x - shape.x;
+                this.dragOffset.y = y - shape.y;
                 this.shapes.splice(i, 1);
                 this.shapes.push(shape);
                 break;
@@ -241,7 +199,6 @@ export class ShapeGame {
     endDrag(x, y) {
         if (!this.draggedShape) return;
         
-        // Prüfe ob Form in richtiger Zone
         let snapped = false;
         
         for (let zone of this.dropZones) {
@@ -254,7 +211,6 @@ export class ShapeGame {
                 y >= zone.y && y <= zone.y + zone.height) {
                 
                 if (this.draggedShape.type === zone.type) {
-                    // Richtige Zone!
                     this.draggedShape.x = centerX;
                     this.draggedShape.y = centerY;
                     this.draggedShape.placed = true;
@@ -265,14 +221,11 @@ export class ShapeGame {
                     this.playSuccessSound();
                     this.createSuccessParticles(centerX, centerY, zone.color);
                     
-                    // Alle Formen platziert?
                     if (this.completedShapes >= this.totalShapes) {
                         this.levelComplete();
                     }
-                    
                     snapped = true;
                 } else {
-                    // Falsche Zone
                     this.animateShake(this.draggedShape);
                     this.playWrongSound();
                 }
@@ -280,7 +233,6 @@ export class ShapeGame {
             }
         }
         
-        // Zurück zur Originalposition wenn nicht gepasst
         if (!snapped && !this.draggedShape.placed) {
             this.draggedShape.x = this.draggedShape.originalX;
             this.draggedShape.y = this.draggedShape.originalY;
@@ -291,18 +243,13 @@ export class ShapeGame {
     }
     
     animateSuccess(shape) {
-        let startTime = Date.now();
+        const startTime = Date.now();
         const duration = 500;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
-            if (progress < 0.5) {
-                shape.scale = 1 + progress * 0.4;
-            } else {
-                shape.scale = 1.2 - (progress - 0.5) * 0.4;
-            }
+            shape.scale = progress < 0.5 ? 1 + progress * 0.5 : 1.25 - (progress - 0.5) * 0.5;
             
             if (progress < 1 && this.isRunning) {
                 requestAnimationFrame(animate);
@@ -310,20 +257,18 @@ export class ShapeGame {
                 shape.scale = 1;
             }
         };
-        
         animate();
     }
     
     animateShake(shape) {
-        let startTime = Date.now();
+        const startTime = Date.now();
         const duration = 300;
         const startX = shape.x;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
-            shape.x = startX + Math.sin(progress * Math.PI * 4) * 10 * (1 - progress);
+            shape.x = startX + Math.sin(progress * Math.PI * 4) * 12 * (1 - progress);
             
             if (progress < 1 && this.isRunning) {
                 requestAnimationFrame(animate);
@@ -331,26 +276,18 @@ export class ShapeGame {
                 shape.x = startX;
             }
         };
-        
         animate();
     }
     
-    playSuccessSound() {
-        audioManager.playSuccessSound();
-    }
-    
-    playWrongSound() {
-        audioManager.playErrorSound();
-    }
+    playSuccessSound() { audioManager.playSuccessSound(); }
+    playWrongSound() { audioManager.playErrorSound(); }
     
     levelComplete() {
         setTimeout(() => {
             if (this.currentLevel >= this.maxLevel) {
-                // Alle Level geschafft!
                 this.stop();
                 if (this.onExit) this.onExit();
             } else {
-                // Nächstes Level
                 this.currentLevel++;
                 this.startLevel();
             }
@@ -358,17 +295,14 @@ export class ShapeGame {
     }
     
     createSuccessParticles(x, y, color) {
-        for (let i = 0; i < 20; i++) {
-            const angle = (Math.PI * 2 * i) / 20;
-            const speed = 2 + Math.random() * 3;
+        for (let i = 0; i < 30; i++) {
+            const angle = (Math.PI * 2 * i) / 30;
+            const speed = 3 + Math.random() * 4;
             this.particles.push({
-                x: x,
-                y: y,
+                x, y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
-                life: 1,
-                color: color,
-                size: 3 + Math.random() * 4
+                life: 1, color, size: 4 + Math.random() * 5
             });
         }
     }
@@ -378,15 +312,14 @@ export class ShapeGame {
         this.ctx.translate(shape.x, shape.y);
         this.ctx.scale(shape.scale, shape.scale);
         
-        // Schatten
-        if (!shape.placed) {
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-            this.ctx.shadowBlur = 10;
-            this.ctx.shadowOffsetY = 5;
-        }
+        shape.glow += 0.03;
+        const glowIntensity = shape.placed ? 10 : (15 + Math.sin(shape.glow) * 8);
+        
+        this.ctx.shadowColor = shape.color;
+        this.ctx.shadowBlur = glowIntensity;
         
         this.ctx.fillStyle = shape.color;
-        this.ctx.strokeStyle = 'white';
+        this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
         this.ctx.lineWidth = 3;
         
         const size = shape.size;
@@ -398,12 +331,10 @@ export class ShapeGame {
                 this.ctx.fill();
                 this.ctx.stroke();
                 break;
-                
             case 'square':
                 this.ctx.fillRect(-size / 2, -size / 2, size, size);
                 this.ctx.strokeRect(-size / 2, -size / 2, size, size);
                 break;
-                
             case 'triangle':
                 this.ctx.beginPath();
                 this.ctx.moveTo(0, -size / 2);
@@ -413,15 +344,12 @@ export class ShapeGame {
                 this.ctx.fill();
                 this.ctx.stroke();
                 break;
-                
             case 'star':
                 this.drawStar(0, 0, 5, size / 2, size / 4);
                 break;
-                
             case 'heart':
                 this.drawHeart(0, 0, size / 2);
                 break;
-                
             case 'diamond':
                 this.ctx.beginPath();
                 this.ctx.moveTo(0, -size / 2);
@@ -434,6 +362,15 @@ export class ShapeGame {
                 break;
         }
         
+        // Glanz
+        if (!shape.placed) {
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.shadowBlur = 0;
+            this.ctx.beginPath();
+            this.ctx.ellipse(-size * 0.15, -size * 0.15, size * 0.15, size * 0.1, -0.5, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
         this.ctx.restore();
     }
     
@@ -444,11 +381,8 @@ export class ShapeGame {
             const angle = (i * Math.PI) / points - Math.PI / 2;
             const px = x + radius * Math.cos(angle);
             const py = y + radius * Math.sin(angle);
-            if (i === 0) {
-                this.ctx.moveTo(px, py);
-            } else {
-                this.ctx.lineTo(px, py);
-            }
+            if (i === 0) this.ctx.moveTo(px, py);
+            else this.ctx.lineTo(px, py);
         }
         this.ctx.closePath();
         this.ctx.fill();
@@ -459,31 +393,10 @@ export class ShapeGame {
         this.ctx.beginPath();
         const topCurveHeight = size * 0.3;
         this.ctx.moveTo(x, y + topCurveHeight);
-        
-        // Linke Seite
-        this.ctx.bezierCurveTo(
-            x, y - size * 0.3,
-            x - size, y - size * 0.3,
-            x - size, y + topCurveHeight
-        );
-        this.ctx.bezierCurveTo(
-            x - size, y + size * 0.6,
-            x, y + size,
-            x, y + size * 1.3
-        );
-        
-        // Rechte Seite
-        this.ctx.bezierCurveTo(
-            x, y + size,
-            x + size, y + size * 0.6,
-            x + size, y + topCurveHeight
-        );
-        this.ctx.bezierCurveTo(
-            x + size, y - size * 0.3,
-            x, y - size * 0.3,
-            x, y + topCurveHeight
-        );
-        
+        this.ctx.bezierCurveTo(x, y - size * 0.3, x - size, y - size * 0.3, x - size, y + topCurveHeight);
+        this.ctx.bezierCurveTo(x - size, y + size * 0.6, x, y + size, x, y + size * 1.3);
+        this.ctx.bezierCurveTo(x, y + size, x + size, y + size * 0.6, x + size, y + topCurveHeight);
+        this.ctx.bezierCurveTo(x + size, y - size * 0.3, x, y - size * 0.3, x, y + topCurveHeight);
         this.ctx.closePath();
         this.ctx.fill();
         this.ctx.stroke();
@@ -492,26 +405,35 @@ export class ShapeGame {
     drawDropZone(zone) {
         this.ctx.save();
         
-        // Zone Hintergrund
-        this.ctx.fillStyle = zone.hasShape ? '#e0f2fe' : 'rgba(255, 255, 255, 0.5)';
+        zone.glow += 0.03;
+        const glowIntensity = zone.hasShape ? 5 : (12 + Math.sin(zone.glow) * 6);
+        
+        // Glasmorphism
+        this.ctx.fillStyle = zone.hasShape ? 'rgba(255, 255, 255, 0.15)' : 'rgba(255, 255, 255, 0.05)';
+        this.ctx.shadowColor = zone.color;
+        this.ctx.shadowBlur = glowIntensity;
+        
+        this.ctx.beginPath();
+        this.ctx.roundRect(zone.x, zone.y, zone.width, zone.height, 15);
+        this.ctx.fill();
+        
+        // Neon Border
         this.ctx.strokeStyle = zone.color;
-        this.ctx.lineWidth = 4;
-        this.ctx.setLineDash([10, 5]);
-        
-        this.ctx.fillRect(zone.x, zone.y, zone.width, zone.height);
-        this.ctx.strokeRect(zone.x, zone.y, zone.width, zone.height);
-        
+        this.ctx.lineWidth = 3;
+        this.ctx.setLineDash(zone.hasShape ? [] : [10, 5]);
+        this.ctx.stroke();
         this.ctx.setLineDash([]);
         
-        // Symbol in der Zone
+        // Ghost-Form
         if (!zone.hasShape) {
-            this.ctx.globalAlpha = 0.3;
+            this.ctx.globalAlpha = 0.25;
             this.ctx.fillStyle = zone.color;
             this.ctx.strokeStyle = 'transparent';
+            this.ctx.shadowBlur = 5;
             
             const centerX = zone.x + zone.width / 2;
             const centerY = zone.y + zone.height / 2;
-            const size = Math.min(50, zone.width * 0.6);
+            const size = Math.min(45, zone.width * 0.5);
             
             this.ctx.translate(centerX, centerY);
             
@@ -521,11 +443,9 @@ export class ShapeGame {
                     this.ctx.arc(0, 0, size / 2, 0, Math.PI * 2);
                     this.ctx.fill();
                     break;
-                    
                 case 'square':
                     this.ctx.fillRect(-size / 2, -size / 2, size, size);
                     break;
-                    
                 case 'triangle':
                     this.ctx.beginPath();
                     this.ctx.moveTo(0, -size / 2);
@@ -534,15 +454,12 @@ export class ShapeGame {
                     this.ctx.closePath();
                     this.ctx.fill();
                     break;
-                    
                 case 'star':
                     this.drawStar(0, 0, 5, size / 2, size / 4);
                     break;
-                    
                 case 'heart':
                     this.drawHeart(0, 0, size / 2);
                     break;
-                    
                 case 'diamond':
                     this.ctx.beginPath();
                     this.ctx.moveTo(0, -size / 2);
@@ -563,31 +480,30 @@ export class ShapeGame {
         
         // 🌌 COSMIC HINTERGRUND
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#0a0a1a');
-        gradient.addColorStop(0.5, '#1a0a2e');
-        gradient.addColorStop(1, '#0a0a1a');
+        gradient.addColorStop(0, '#050510');
+        gradient.addColorStop(0.5, '#0f0525');
+        gradient.addColorStop(1, '#050510');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
         // Sterne
-        for (let i = 0; i < 60; i++) {
-            const x = (i * 73) % this.canvas.width;
-            const y = (i * 47) % this.canvas.height;
-            const opacity = 0.3 + Math.sin(Date.now() * 0.001 + i) * 0.3;
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+        for (let star of this.stars) {
+            star.twinkle += star.speed;
+            const alpha = 0.3 + Math.sin(star.twinkle) * 0.4;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             this.ctx.beginPath();
-            this.ctx.arc(x, y, 1 + (i % 2), 0, Math.PI * 2);
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
             this.ctx.fill();
         }
         
-        // Level-Anzeige mit Neon
+        // Titel
         this.ctx.save();
         this.ctx.shadowColor = '#00ffff';
-        this.ctx.shadowBlur = 20;
+        this.ctx.shadowBlur = 30;
         this.ctx.fillStyle = '#00ffff';
-        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
+        this.ctx.font = 'bold 26px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(`Level ${this.currentLevel}/${this.maxLevel}`, this.canvas.width / 2, 35);
+        this.ctx.fillText(`🔷 Level ${this.currentLevel}/${this.maxLevel} 🔷`, this.canvas.width / 2, 35);
         this.ctx.restore();
         
         // Anweisung
@@ -595,47 +511,44 @@ export class ShapeGame {
         this.ctx.shadowColor = '#ff00ff';
         this.ctx.shadowBlur = 15;
         this.ctx.fillStyle = '#ff00ff';
-        this.ctx.font = 'bold 22px sans-serif';
-        this.ctx.fillText('🔷 Ziehe jede Form in das richtige Feld! 🔷', this.canvas.width / 2, 65);
+        this.ctx.font = 'bold 20px sans-serif';
+        this.ctx.fillText('Ziehe jede Form ins richtige Feld!', this.canvas.width / 2, 65);
         this.ctx.restore();
         
-        // Fortschritt anzeigen
+        // Fortschritt
         this.ctx.save();
         this.ctx.shadowColor = '#00ff88';
         this.ctx.shadowBlur = 15;
         this.ctx.font = 'bold 18px sans-serif';
         this.ctx.fillStyle = '#00ff88';
-        this.ctx.fillText(
-            `${this.completedShapes} von ${this.totalShapes} geschafft! 🌟`,
-            this.canvas.width / 2,
-            this.canvas.height - 20
-        );
+        this.ctx.fillText(`${this.completedShapes}/${this.totalShapes} geschafft! 🌟`, this.canvas.width / 2, this.canvas.height - 20);
         this.ctx.restore();
         
-        // Drop-Zones zeichnen
+        // Drop-Zones
         for (let zone of this.dropZones) {
             this.drawDropZone(zone);
         }
         
-        // Formen zeichnen
+        // Formen
         for (let shape of this.shapes) {
             this.drawShape(shape);
         }
         
-        // Partikel zeichnen
+        // Partikel
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.life -= 0.02;
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
             
             if (p.life > 0) {
                 this.ctx.fillStyle = p.color;
+                this.ctx.shadowColor = p.color;
+                this.ctx.shadowBlur = 10;
                 this.ctx.globalAlpha = p.life;
                 this.ctx.beginPath();
                 this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
                 this.ctx.fill();
                 this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
             } else {
                 this.particles.splice(i, 1);
             }
@@ -644,4 +557,3 @@ export class ShapeGame {
         requestAnimationFrame(this.render);
     }
 }
-

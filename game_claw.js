@@ -1,4 +1,4 @@
-// game_claw.js - Einfacher Greifautomat (von oben gesehen)
+// game_claw.js - 🌌 COSMIC Greifautomat Spiel
 import { audioManager } from './audio_utils.js';
 
 export class ClawGame {
@@ -8,37 +8,13 @@ export class ClawGame {
         this.ctx = null;
         this.onExit = null;
         
-        // Spielfeld
-        this.box = {
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0
-        };
-        
-        // Greifer
-        this.claw = {
-            x: 0,
-            y: 0,
-            width: 80,
-            height: 80,
-            targetX: 0,
-            baseY: 0,
-            state: 'idle', // idle, moving_down, closing, moving_up, returning
-            openAmount: 1, // 1 = offen, 0 = geschlossen
-            grabbedToy: null
-        };
-        
-        // Plüschtiere
+        this.box = { x: 0, y: 0, width: 0, height: 0 };
+        this.claw = { x: 0, y: 100, targetX: 0, state: 'idle', openAmount: 30, grabbedToy: null };
         this.toys = [];
-        this.caughtToys = 0;
-        this.targetCount = 5;
-        
-        // Score
         this.score = 0;
-        
-        // Effekte
         this.particles = [];
+        this.stars = [];
+        this.time = 0;
     }
     
     async start(ctx, onExit) {
@@ -46,246 +22,187 @@ export class ClawGame {
         this.canvas = ctx.canvas;
         this.onExit = onExit;
         this.isRunning = true;
-        
-        // Box-Setup (80% der Canvas-Größe)
-        this.box.width = this.canvas.width * 0.8;
-        this.box.height = this.canvas.height * 0.7;
-        this.box.x = (this.canvas.width - this.box.width) / 2;
-        this.box.y = 100;
-        
-        // Greifer-Start (oben, mitte)
-        this.claw.x = this.canvas.width / 2;
-        this.claw.y = 60;
-        this.claw.targetX = this.claw.x;
-        this.claw.baseY = this.claw.y;
-        this.claw.state = 'idle';
-        this.claw.openAmount = 1;
-        this.claw.grabbedToy = null;
-        
-        // Reset
-        this.caughtToys = 0;
         this.score = 0;
-        this.toys = [];
+        this.particles = [];
+        this.time = 0;
         
-        // Toys generieren
+        this.box = {
+            x: 30, y: 90,
+            width: this.canvas.width - 60,
+            height: this.canvas.height - 180
+        };
+        
+        this.claw = {
+            x: this.box.x + this.box.width / 2,
+            y: this.box.y + 40,
+            targetX: this.box.x + this.box.width / 2,
+            state: 'idle',
+            openAmount: 30,
+            grabbedToy: null,
+            glow: 0
+        };
+        
+        this.generateStars();
         this.generateToys();
         
-        // Event Listeners
-        this.canvas.addEventListener('click', this.handleClick);
-        this.canvas.addEventListener('touchstart', this.handleTouch);
+        this.canvas.addEventListener('click', this.handleInput);
+        this.canvas.addEventListener('touchstart', this.handleInput);
         
-        // Game Loop
         this.gameLoop();
     }
     
     stop() {
         this.isRunning = false;
-        this.canvas.removeEventListener('click', this.handleClick);
-        this.canvas.removeEventListener('touchstart', this.handleTouch);
+        this.canvas.removeEventListener('click', this.handleInput);
+        this.canvas.removeEventListener('touchstart', this.handleInput);
     }
     
-    generateToys() {
-        const toyTypes = [
-            { emoji: '🧸', color: '#f59e0b', size: 50, points: 10 },
-            { emoji: '🐻', color: '#92400e', size: 50, points: 10 },
-            { emoji: '🐰', color: '#ec4899', size: 45, points: 10 },
-            { emoji: '🦁', color: '#fbbf24', size: 50, points: 15 },
-            { emoji: '🐯', color: '#f97316', size: 50, points: 15 },
-            { emoji: '🐼', color: '#1e293b', size: 50, points: 15 },
-            { emoji: '⭐', color: '#fbbf24', size: 45, points: 30 },
-            { emoji: '💎', color: '#3b82f6', size: 40, points: 50 }
-        ];
-        
-        // 10 Toys erstellen
-        for (let i = 0; i < 10; i++) {
-            const type = toyTypes[Math.floor(Math.random() * toyTypes.length)];
-            const padding = type.size / 2 + 20;
-            
-            this.toys.push({
-                x: this.box.x + padding + Math.random() * (this.box.width - padding * 2),
-                y: this.box.y + padding + Math.random() * (this.box.height - padding * 2),
-                emoji: type.emoji,
-                color: type.color,
-                size: type.size,
-                points: type.points,
-                caught: false,
-                wobble: Math.random() * Math.PI * 2
+    generateStars() {
+        this.stars = [];
+        for (let i = 0; i < 80; i++) {
+            this.stars.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height,
+                size: Math.random() * 2 + 0.5,
+                twinkle: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.03
             });
         }
     }
     
-    handleClick = (e) => {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        const y = e.clientY - rect.top;
-        this.handleInput(x, y);
+    generateToys() {
+        this.toys = [];
+        const colors = ['#ff0055', '#00ffff', '#00ff88', '#ffff00', '#ff00ff', '#ff8800'];
+        const emojis = ['🌟', '💎', '🎮', '🎈', '🎁', '🧸', '🌈', '🍬', '⚽', '🎪'];
+        
+        const toyAreaBottom = this.box.y + this.box.height - 40;
+        const toyAreaTop = toyAreaBottom - 200;
+        
+        for (let i = 0; i < 12; i++) {
+            const size = 35 + Math.random() * 15;
+            let x, y, overlapping;
+            let attempts = 0;
+            
+            do {
+                x = this.box.x + 50 + Math.random() * (this.box.width - 100);
+                y = toyAreaTop + Math.random() * (toyAreaBottom - toyAreaTop);
+                overlapping = this.toys.some(t => 
+                    Math.abs(t.x - x) < size && Math.abs(t.y - y) < size
+                );
+                attempts++;
+            } while (overlapping && attempts < 20);
+            
+            this.toys.push({
+                x, y, size,
+                color: colors[Math.floor(Math.random() * colors.length)],
+                emoji: emojis[Math.floor(Math.random() * emojis.length)],
+                caught: false,
+                glow: Math.random() * Math.PI * 2
+            });
+        }
     }
     
-    handleTouch = (e) => {
+    handleInput = (e) => {
         e.preventDefault();
         const rect = this.canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        const y = touch.clientY - rect.top;
-        this.handleInput(x, y);
-    }
-    
-    handleInput(x, y) {
-        // Wenn Greifer beschäftigt ist, ignoriere Klicks
-        if (this.claw.state !== 'idle') return;
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
         
-        // Check Grab-Button
-        const buttonWidth = 150;
-        const buttonHeight = 60;
-        const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height - 80;
-        
-        if (x >= buttonX && x <= buttonX + buttonWidth &&
-            y >= buttonY && y <= buttonY + buttonHeight) {
-            this.startGrab();
+        // "Greifen"-Button
+        if (y > this.canvas.height - 80) {
+            if (this.claw.state === 'idle') {
+                this.claw.state = 'moving_down';
+                audioManager.playClickSound();
+            }
             return;
         }
         
-        // Bewege Greifer zu geklickter Position (nur horizontal)
-        if (y < 90) { // Nur klicks im oberen Bereich
+        // Greifer horizontal bewegen (nur oben)
+        if (this.claw.state === 'idle' && y < 120) {
             const minX = this.box.x + 40;
             const maxX = this.box.x + this.box.width - 40;
             const clampedX = Math.max(minX, Math.min(maxX, x));
-            // Sofortige Positionierung ohne spürbare Verzögerung
-            this.claw.targetX = clampedX;
             this.claw.x = clampedX;
+            this.claw.targetX = clampedX;
         }
-    }
-    
-    startGrab() {
-        if (this.claw.state !== 'idle') return;
-        
-        this.claw.state = 'moving_down';
-        this.claw.openAmount = 1;
-        audioManager.playClickSound();
     }
     
     update() {
-        // Bewege Greifer horizontal (nur im Idle-Zustand)
-        if (this.claw.state === 'idle') {
-            const dx = this.claw.targetX - this.claw.x;
-            if (Math.abs(dx) > 1) {
-                this.claw.x += dx * 0.15;
-            }
-        }
+        this.time += 0.016;
         
-        // Animations-Logik je nach Zustand
+        const speed = 4;
+        
         switch (this.claw.state) {
-            case 'moving_down': {
-                const targetY = this.box.y + 50; // in die Box hinein
-                if (this.claw.y < targetY) {
-                    this.claw.y += 8;
-                    if (this.claw.y >= targetY) {
-                        this.claw.y = targetY;
-                        // Sofort versuchen zu greifen wenn unten
-                        this.tryGrab();
-                        this.claw.state = 'closing';
-                    }
+            case 'moving_down':
+                this.claw.y += speed;
+                if (this.claw.y >= this.box.y + this.box.height - 90) {
+                    this.claw.y = this.box.y + this.box.height - 90;
+                    this.claw.state = 'closing';
                 }
                 break;
-            }
-            case 'closing': {
-                // Greifer schliessen (nur visuell, Toy ist schon "gefangen" wenn möglich)
-                this.claw.openAmount = Math.max(0, this.claw.openAmount - 0.12);
+                
+            case 'closing':
+                this.claw.openAmount -= 2;
                 if (this.claw.openAmount <= 0) {
+                    this.claw.openAmount = 0;
+                    this.tryGrab();
                     this.claw.state = 'moving_up';
                 }
                 break;
-            }
-            case 'moving_up': {
-                // Greifer wieder nach oben
-                if (this.claw.y > this.claw.baseY) {
-                    this.claw.y -= 8;
-                    if (this.claw.y <= this.claw.baseY) {
-                        this.claw.y = this.claw.baseY;
-                        this.claw.state = 'returning';
-                    }
-                }
                 
-                // Gefangenes Toy mitbewegen
+            case 'moving_up':
+                this.claw.y -= speed;
                 if (this.claw.grabbedToy) {
                     this.claw.grabbedToy.x = this.claw.x;
-                    this.claw.grabbedToy.y = this.claw.y + 60;
+                    this.claw.grabbedToy.y = this.claw.y + 45;
+                }
+                if (this.claw.y <= this.box.y + 40) {
+                    this.claw.y = this.box.y + 40;
+                    this.claw.state = 'returning';
                 }
                 break;
-            }
-            case 'returning': {
-                // Öffne Greifer langsam wieder
-                this.claw.openAmount = Math.min(1, this.claw.openAmount + 0.05);
                 
-                // Bewege zur Mitte
-                const centerX = this.canvas.width / 2;
-                const dx = centerX - this.claw.x;
+            case 'returning':
+                const dropX = this.box.x + 50;
+                this.claw.x += (dropX - this.claw.x) * 0.12;
+                if (this.claw.grabbedToy) {
+                    this.claw.grabbedToy.x = this.claw.x;
+                }
                 
-                if (Math.abs(dx) > 2) {
-                    this.claw.x += dx * 0.1;
-                    
-                    // Gefangenes Toy mitbewegen
+                if (Math.abs(this.claw.x - dropX) < 3) {
+                    this.claw.openAmount = 30;
                     if (this.claw.grabbedToy) {
-                        this.claw.grabbedToy.x = this.claw.x;
-                        this.claw.grabbedToy.y = this.claw.y + 60;
-                    }
-                } else {
-                    // Angekommen - Toy einsammeln (falls vorhanden)
-                    if (this.claw.grabbedToy) {
-                        this.collectToy(this.claw.grabbedToy);
+                        this.score++;
+                        this.createParticles(this.claw.x, this.claw.y + 50, this.claw.grabbedToy.color);
+                        const index = this.toys.indexOf(this.claw.grabbedToy);
+                        if (index > -1) this.toys.splice(index, 1);
                         this.claw.grabbedToy = null;
+                        audioManager.playSuccessSound();
                     }
+                    this.claw.x = this.box.x + this.box.width / 2;
                     this.claw.state = 'idle';
-                    this.claw.openAmount = 1;
+                    
+                    if (this.toys.filter(t => !t.caught).length === 0) {
+                        setTimeout(() => { if (this.onExit) this.onExit(); }, 2000);
+                    }
                 }
                 break;
-            }
-        }
-        
-        // Toy wobble
-        for (let toy of this.toys) {
-            if (!toy.caught) {
-                toy.wobble += 0.03;
-            }
-        }
-        
-        // Partikel updaten
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.2;
-            p.life -= 0.02;
-            
-            if (p.life <= 0) {
-                this.particles.splice(i, 1);
-            }
         }
     }
     
     tryGrab() {
-        // SUPER-MAGNET GREIFER
-        // Sucht das absolut nächste Toy, egal wo es vertikal ist (da wir von oben schauen)
         let bestToy = null;
-        let minDistance = Infinity;
-        
-        const clawX = this.claw.x;
+        let bestDistance = Infinity;
         
         for (let toy of this.toys) {
             if (toy.caught) continue;
+            const dx = Math.abs(toy.x - this.claw.x);
+            const dy = Math.abs(toy.y - (this.claw.y + 45));
+            const distance = Math.sqrt(dx * dx + dy * dy);
             
-            // Distanz nur horizontal berechnen (weil wir von oben schauen)
-            const dx = Math.abs(toy.x - clawX);
-            const dy = Math.abs(toy.y - (this.claw.y + 40)); // Vertikale Distanz zum Greiferkopf
-            
-            // Gesamtdistanz (bevorzugt Toys die nah am Greifer sind)
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            // Wenn das Toy innerhalb einer sehr breiten Spalte ist (100px Radius!)
-            if (dx < 100) {
-                if (dist < minDistance) {
-                    minDistance = dist;
+            if (dx < toy.size / 2 + 50 && dy < toy.size + 30) {
+                if (distance < bestDistance) {
+                    bestDistance = distance;
                     bestToy = toy;
                 }
             }
@@ -294,345 +211,283 @@ export class ClawGame {
         if (bestToy) {
             bestToy.caught = true;
             this.claw.grabbedToy = bestToy;
-            audioManager.playSuccessSound();
             this.createParticles(bestToy.x, bestToy.y, bestToy.color);
         } else {
-            // Wenn gar nichts gefunden wurde, versuche IRGENDEIN Toy zu finden
-            // (Fallback für frustfreie Erfahrung)
-            const anyToy = this.toys.find(t => !t.caught);
-            if (anyToy && Math.random() > 0.7) { // 30% Chance auf "Mitleids-Greifen" wenn man total daneben liegt
-                 anyToy.caught = true;
-                 this.claw.grabbedToy = anyToy;
-                 audioManager.playSuccessSound();
-            } else {
-                audioManager.playErrorSound();
-            }
-        }
-    }
-    
-    collectToy(toy) {
-        this.caughtToys++;
-        this.score += toy.points;
-        
-        // Entferne aus Array
-        const index = this.toys.indexOf(toy);
-        if (index > -1) {
-            this.toys.splice(index, 1);
-        }
-        
-        // Partikel-Effekt
-        this.createParticles(this.claw.x, this.claw.y + 20, toy.color);
-        audioManager.playScoreSound();
-        
-        // Gewonnen?
-        if (this.caughtToys >= this.targetCount) {
-            setTimeout(() => {
-                this.stop();
-                if (this.onExit) this.onExit();
-            }, 1000);
+            audioManager.playErrorSound();
         }
     }
     
     createParticles(x, y, color) {
-        for (let i = 0; i < 20; i++) {
-            const angle = (Math.PI * 2 * i) / 20;
-            const speed = 2 + Math.random() * 3;
+        for (let i = 0; i < 25; i++) {
+            const angle = (Math.PI * 2 * i) / 25;
+            const speed = 2 + Math.random() * 4;
             this.particles.push({
-                x: x,
-                y: y,
+                x, y,
                 vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 2,
-                life: 1,
-                color: color,
-                size: 3 + Math.random() * 4
+                vy: Math.sin(angle) * speed,
+                life: 1, color,
+                size: 4 + Math.random() * 4
             });
         }
     }
     
     gameLoop = () => {
         if (!this.isRunning) return;
-        
         this.update();
         this.render();
-        
         requestAnimationFrame(this.gameLoop);
     }
     
     render() {
-        // Hintergrund
-        const bgGradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        bgGradient.addColorStop(0, '#1e1b4b');
-        bgGradient.addColorStop(0.5, '#5b21b6');
-        bgGradient.addColorStop(1, '#7c3aed');
-        this.ctx.fillStyle = bgGradient;
+        // 🌌 COSMIC HINTERGRUND
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        gradient.addColorStop(0, '#0a0020');
+        gradient.addColorStop(0.5, '#150040');
+        gradient.addColorStop(1, '#0a0020');
+        this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Titel
+        // Sterne
+        for (let star of this.stars) {
+            star.twinkle += star.speed;
+            const alpha = 0.3 + Math.sin(star.twinkle) * 0.4;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // Automat-Rahmen (Neon-Glas)
         this.ctx.save();
-        this.ctx.fillStyle = '#fde047';
-        this.ctx.font = 'bold 32px sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+        this.ctx.strokeStyle = '#ff00ff';
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 25;
+        this.ctx.lineWidth = 5;
+        this.ctx.beginPath();
+        this.ctx.roundRect(this.box.x, this.box.y, this.box.width, this.box.height, 20);
+        this.ctx.stroke();
+        
+        // Glaseffekt
+        this.ctx.fillStyle = 'rgba(100, 0, 150, 0.15)';
+        this.ctx.fill();
+        this.ctx.restore();
+        
+        // Schiene
+        this.ctx.fillStyle = '#333';
+        this.ctx.shadowColor = '#00ffff';
         this.ctx.shadowBlur = 10;
-        this.ctx.fillText('🎪 GREIFAUTOMAT 🎪', this.canvas.width / 2, 35);
-        this.ctx.restore();
-        
-        // Score
-        this.ctx.save();
-        this.ctx.fillStyle = '#fde047';
-        this.ctx.font = 'bold 24px sans-serif';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText(`⭐ ${this.score}`, 15, 70);
-        this.ctx.fillStyle = '#10b981';
-        this.ctx.fillText(`${this.caughtToys}/${this.targetCount}`, this.canvas.width - 80, 70);
-        this.ctx.restore();
-        
-        // Box zeichnen
-        this.ctx.save();
-        this.ctx.fillStyle = 'rgba(59, 130, 246, 0.2)';
-        this.ctx.fillRect(this.box.x, this.box.y, this.box.width, this.box.height);
-        
-        this.ctx.strokeStyle = '#3b82f6';
-        this.ctx.lineWidth = 4;
-        this.ctx.shadowColor = 'rgba(59, 130, 246, 0.5)';
-        this.ctx.shadowBlur = 15;
-        this.ctx.strokeRect(this.box.x, this.box.y, this.box.width, this.box.height);
-        
-        // Gitter
-        this.ctx.strokeStyle = 'rgba(59, 130, 246, 0.2)';
-        this.ctx.lineWidth = 2;
+        this.ctx.fillRect(this.box.x + 10, this.box.y + 20, this.box.width - 20, 12);
         this.ctx.shadowBlur = 0;
         
-        const gridSize = 60;
-        for (let x = this.box.x; x <= this.box.x + this.box.width; x += gridSize) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x, this.box.y);
-            this.ctx.lineTo(x, this.box.y + this.box.height);
-            this.ctx.stroke();
-        }
-        for (let y = this.box.y; y <= this.box.y + this.box.height; y += gridSize) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(this.box.x, y);
-            this.ctx.lineTo(this.box.x + this.box.width, y);
-            this.ctx.stroke();
-        }
-        this.ctx.restore();
+        // Neon-Linie auf Schiene
+        this.ctx.strokeStyle = '#00ffff';
+        this.ctx.lineWidth = 2;
+        this.ctx.beginPath();
+        this.ctx.moveTo(this.box.x + 10, this.box.y + 26);
+        this.ctx.lineTo(this.box.x + this.box.width - 10, this.box.y + 26);
+        this.ctx.stroke();
         
-        // Toys zeichnen
+        // Spielzeuge
         for (let toy of this.toys) {
             if (toy.caught && toy !== this.claw.grabbedToy) continue;
             
+            toy.glow += 0.05;
+            const glowIntensity = 12 + Math.sin(toy.glow) * 6;
+            
             this.ctx.save();
+            this.ctx.translate(toy.x, toy.y);
             
-            const wobbleX = Math.sin(toy.wobble) * 2;
-            const wobbleY = Math.cos(toy.wobble * 1.2) * 1;
+            // Glow
+            this.ctx.shadowColor = toy.color;
+            this.ctx.shadowBlur = glowIntensity;
             
-            this.ctx.translate(toy.x + wobbleX, toy.y + wobbleY);
-            
-            // Schatten
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
-            this.ctx.beginPath();
-            this.ctx.ellipse(0, toy.size / 2 + 5, toy.size / 3, toy.size / 6, 0, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Toy Körper
-            const gradient = this.ctx.createRadialGradient(-10, -10, 0, 0, 0, toy.size / 2);
-            gradient.addColorStop(0, this.lightenColor(toy.color, 50));
-            gradient.addColorStop(0.6, toy.color);
-            gradient.addColorStop(1, this.darkenColor(toy.color, 20));
-            
-            this.ctx.fillStyle = gradient;
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-            this.ctx.shadowBlur = 15;
-            this.ctx.shadowOffsetY = 8;
+            // Hintergrund-Kreis
+            const grad = this.ctx.createRadialGradient(0, 0, 0, 0, 0, toy.size / 2);
+            grad.addColorStop(0, toy.color);
+            grad.addColorStop(1, this.darkenColor(toy.color, 0.4));
+            this.ctx.fillStyle = grad;
             this.ctx.beginPath();
             this.ctx.arc(0, 0, toy.size / 2, 0, Math.PI * 2);
             this.ctx.fill();
             
-            this.ctx.shadowBlur = 0;
-            
-            // Glanz
-            const gloss = this.ctx.createRadialGradient(-toy.size / 4, -toy.size / 4, 0, 0, 0, toy.size / 3);
-            gloss.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-            gloss.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            this.ctx.fillStyle = gloss;
-            this.ctx.beginPath();
-            this.ctx.arc(-toy.size / 6, -toy.size / 6, toy.size / 3, 0, Math.PI * 2);
-            this.ctx.fill();
-            
             // Emoji
+            this.ctx.shadowBlur = 0;
             this.ctx.font = `${toy.size * 0.7}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillStyle = '#fff';
-            this.ctx.fillText(toy.emoji, 0, 0);
+            this.ctx.fillText(toy.emoji, 0, 2);
             
             this.ctx.restore();
         }
         
-        // Greifer zeichnen
+        // Greifer
         this.drawClaw();
         
         // Partikel
-        for (let p of this.particles) {
-            this.ctx.fillStyle = p.color;
-            this.ctx.globalAlpha = p.life;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-            this.ctx.fill();
-            this.ctx.globalAlpha = 1;
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx; p.y += p.vy; p.life -= 0.025;
+            
+            if (p.life > 0) {
+                this.ctx.fillStyle = p.color;
+                this.ctx.shadowColor = p.color;
+                this.ctx.shadowBlur = 10;
+                this.ctx.globalAlpha = p.life;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
+            } else {
+                this.particles.splice(i, 1);
+            }
         }
         
-        // Grab-Button nur im Idle-Zustand
-        if (this.claw.state === 'idle') {
-            this.drawGrabButton();
-        }
+        // UI - Titel
+        this.ctx.save();
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 25;
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.font = 'bold 26px "Fredoka One", sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('🎪 COSMIC CLAW 🎪', this.canvas.width / 2, 35);
+        
+        // Score
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 22px sans-serif';
+        this.ctx.fillText(`⭐ ${this.score} gefangen!`, this.canvas.width / 2, 70);
+        this.ctx.restore();
+        
+        // Greifen-Button
+        this.ctx.save();
+        const buttonY = this.canvas.height - 60;
+        const buttonWidth = 200;
+        const buttonX = (this.canvas.width - buttonWidth) / 2;
+        
+        const isActive = this.claw.state === 'idle';
+        const buttonColor = isActive ? '#00ff88' : '#444';
+        const glowColor = isActive ? '#00ff88' : 'transparent';
+        
+        this.ctx.shadowColor = glowColor;
+        this.ctx.shadowBlur = isActive ? 20 : 0;
+        
+        const btnGrad = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + 50);
+        btnGrad.addColorStop(0, buttonColor);
+        btnGrad.addColorStop(1, this.darkenColor(buttonColor, 0.3));
+        this.ctx.fillStyle = btnGrad;
+        this.ctx.beginPath();
+        this.ctx.roundRect(buttonX, buttonY, buttonWidth, 50, 25);
+        this.ctx.fill();
+        
+        this.ctx.fillStyle = isActive ? '#003322' : '#222';
+        this.ctx.font = 'bold 22px "Fredoka One", sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.textBaseline = 'middle';
+        this.ctx.shadowBlur = 0;
+        this.ctx.fillText(isActive ? '⬇️ GREIFEN!' : '⏳ Warte...', this.canvas.width / 2, buttonY + 25);
+        this.ctx.restore();
         
         // Anleitung
-        if (this.caughtToys === 0 && this.claw.state === 'idle') {
+        if (this.claw.state === 'idle') {
             this.ctx.save();
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-            this.ctx.font = 'bold 20px sans-serif';
+            this.ctx.shadowColor = '#ffff00';
+            this.ctx.shadowBlur = 10;
+            this.ctx.fillStyle = '#ffff00';
+            this.ctx.font = 'bold 16px sans-serif';
             this.ctx.textAlign = 'center';
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            this.ctx.shadowBlur = 5;
-            this.ctx.fillText('👆 Tippe oben um Greifer zu bewegen! 👆', this.canvas.width / 2, 95);
+            this.ctx.fillText('👆 Tippe oben um den Greifer zu bewegen!', this.canvas.width / 2, this.box.y + this.box.height + 30);
             this.ctx.restore();
         }
     }
     
     drawClaw() {
-        this.ctx.save();
-        
-        const width = this.claw.width;
-        const height = this.claw.height;
         const x = this.claw.x;
         const y = this.claw.y;
         
+        this.claw.glow = (this.claw.glow || 0) + 0.05;
+        const glowIntensity = 15 + Math.sin(this.claw.glow) * 8;
+        
         // Seil
-        this.ctx.strokeStyle = '#64748b';
-        this.ctx.lineWidth = 3;
+        this.ctx.strokeStyle = '#00ffff';
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.shadowBlur = 10;
+        this.ctx.lineWidth = 4;
         this.ctx.beginPath();
-        this.ctx.moveTo(x, 10);
+        this.ctx.moveTo(x, this.box.y + 32);
         this.ctx.lineTo(x, y);
         this.ctx.stroke();
-        
-        this.ctx.translate(x, y);
-        
-        // Schatten
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-        this.ctx.shadowBlur = 20;
-        this.ctx.shadowOffsetY = 10;
-        
-        // Greifer-Körper
-        const bodyGradient = this.ctx.createLinearGradient(-width / 2, -height / 2, width / 2, height / 2);
-        bodyGradient.addColorStop(0, '#94a3b8');
-        bodyGradient.addColorStop(1, '#64748b');
-        
-        this.ctx.fillStyle = bodyGradient;
-        this.ctx.fillRect(-width / 3, -15, width * 0.66, 30);
-        
         this.ctx.shadowBlur = 0;
         
-        // Klauen (links und rechts)
-        const openWidth = width / 2 * this.claw.openAmount;
+        // Greifer-Kopf
+        this.ctx.save();
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = glowIntensity;
         
-        // Linke Klaue
-        this.ctx.fillStyle = '#475569';
+        const headGrad = this.ctx.createLinearGradient(x - 25, y, x + 25, y);
+        headGrad.addColorStop(0, '#ff00ff');
+        headGrad.addColorStop(0.5, '#ff88ff');
+        headGrad.addColorStop(1, '#ff00ff');
+        this.ctx.fillStyle = headGrad;
         this.ctx.beginPath();
-        this.ctx.moveTo(-openWidth, 15);
-        this.ctx.lineTo(-openWidth - 20, 15);
-        this.ctx.lineTo(-openWidth - 25, 45);
-        this.ctx.lineTo(-openWidth - 10, 45);
-        this.ctx.closePath();
+        this.ctx.roundRect(x - 25, y, 50, 25, 8);
         this.ctx.fill();
-        
-        // Rechte Klaue
-        this.ctx.beginPath();
-        this.ctx.moveTo(openWidth, 15);
-        this.ctx.lineTo(openWidth + 20, 15);
-        this.ctx.lineTo(openWidth + 25, 45);
-        this.ctx.lineTo(openWidth + 10, 45);
-        this.ctx.closePath();
-        this.ctx.fill();
-        
-        // Glanz
-        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
-        this.ctx.fillRect(-width / 3 + 3, -12, width * 0.2, 25);
-        
-        // Gefangenes Toy anzeigen, wenn es am Greifer hängt
-        if (this.claw.grabbedToy && (this.claw.state === 'moving_up' || this.claw.state === 'returning')) {
-            const toy = this.claw.grabbedToy;
-            this.ctx.font = `${toy.size * 0.9}px Arial`;
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(toy.emoji, 0, 70);
-        }
-        
         this.ctx.restore();
-    }
-    
-    drawGrabButton() {
-        const buttonWidth = 150;
-        const buttonHeight = 60;
-        const buttonX = this.canvas.width / 2 - buttonWidth / 2;
-        const buttonY = this.canvas.height - 80;
+        
+        // Greifarme
+        const armLength = 45;
+        const openAmount = this.claw.openAmount;
         
         this.ctx.save();
+        this.ctx.strokeStyle = '#ff00ff';
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 10;
+        this.ctx.lineWidth = 8;
+        this.ctx.lineCap = 'round';
         
-        // Schatten
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
-        this.ctx.shadowBlur = 20;
-        this.ctx.shadowOffsetY = 10;
-        
-        // Button
-        const btnGradient = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight);
-        btnGradient.addColorStop(0, '#10b981');
-        btnGradient.addColorStop(1, '#059669');
-        
-        this.ctx.fillStyle = btnGradient;
+        // Linker Arm
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight, 15);
-        this.ctx.fill();
+        this.ctx.moveTo(x - 15, y + 25);
+        this.ctx.lineTo(x - 15 - openAmount, y + 25 + armLength);
+        this.ctx.stroke();
         
-        this.ctx.shadowBlur = 0;
-        
-        // Glanz
-        const gloss = this.ctx.createLinearGradient(buttonX, buttonY, buttonX, buttonY + buttonHeight / 2);
-        gloss.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
-        gloss.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        this.ctx.fillStyle = gloss;
+        // Rechter Arm
         this.ctx.beginPath();
-        this.ctx.roundRect(buttonX, buttonY, buttonWidth, buttonHeight / 2, 15);
+        this.ctx.moveTo(x + 15, y + 25);
+        this.ctx.lineTo(x + 15 + openAmount, y + 25 + armLength);
+        this.ctx.stroke();
+        
+        // Greifer-Krallen
+        this.ctx.lineWidth = 6;
+        
+        // Linke Kralle
+        this.ctx.beginPath();
+        this.ctx.arc(x - 15 - openAmount, y + 25 + armLength, 10, Math.PI * 0.5, Math.PI * 1.5);
+        this.ctx.stroke();
+        
+        // Rechte Kralle
+        this.ctx.beginPath();
+        this.ctx.arc(x + 15 + openAmount, y + 25 + armLength, 10, -Math.PI * 0.5, Math.PI * 0.5);
+        this.ctx.stroke();
+        
+        this.ctx.restore();
+        
+        // Wagen auf Schiene
+        this.ctx.save();
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.shadowBlur = 15;
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.beginPath();
+        this.ctx.roundRect(x - 20, this.box.y + 15, 40, 20, 5);
         this.ctx.fill();
-        
-        // Text
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 26px sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.textBaseline = 'middle';
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-        this.ctx.shadowBlur = 3;
-        this.ctx.fillText('GREIFEN! 👇', this.canvas.width / 2, buttonY + buttonHeight / 2);
-        
         this.ctx.restore();
     }
     
-    lightenColor(color, percent) {
-        const num = parseInt(color.replace("#",""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = Math.min(255, (num >> 16) + amt);
-        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-        const B = Math.min(255, (num & 0x0000FF) + amt);
-        return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-    }
-    
-    darkenColor(color, percent) {
-        const num = parseInt(color.replace("#",""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = Math.max(0, (num >> 16) - amt);
-        const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
-        const B = Math.max(0, (num & 0x0000FF) - amt);
-        return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
+    darkenColor(color, factor) {
+        const hex = color.replace('#', '');
+        const r = Math.floor(parseInt(hex.substring(0, 2), 16) * (1 - factor));
+        const g = Math.floor(parseInt(hex.substring(2, 4), 16) * (1 - factor));
+        const b = Math.floor(parseInt(hex.substring(4, 6), 16) * (1 - factor));
+        return `rgb(${r}, ${g}, ${b})`;
     }
 }

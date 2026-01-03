@@ -1,33 +1,22 @@
-// game_memory.js - Memory-Farben Spiel
+// game_memory.js - 🌌 COSMIC Memory-Spiel
 import { audioManager } from './audio_utils.js';
 
 export class MemoryGame {
     constructor() {
+        this.cards = [];
+        this.flippedCards = [];
+        this.matchedPairs = 0;
         this.isRunning = false;
         this.canvas = null;
         this.ctx = null;
         this.onExit = null;
-        
-        this.cards = [];
-        this.flippedCards = [];
-        this.matchedPairs = 0;
-        this.totalPairs = 6;
-        this.canFlip = true;
+        this.isChecking = false;
+        this.level = 1;
+        this.maxLevel = 5;
         this.moves = 0;
-        
-        // Visuelle Effekte
         this.particles = [];
         this.stars = [];
-        
-        // Farben für die Karten
-        this.colors = [
-            { name: 'Rot', color: '#ef4444', light: '#fca5a5' },
-            { name: 'Blau', color: '#3b82f6', light: '#93c5fd' },
-            { name: 'Grün', color: '#10b981', light: '#6ee7b7' },
-            { name: 'Gelb', color: '#fbbf24', light: '#fde68a' },
-            { name: 'Lila', color: '#a855f7', light: '#d8b4fe' },
-            { name: 'Rosa', color: '#ec4899', light: '#f9a8d4' }
-        ];
+        this.time = 0;
     }
     
     async start(ctx, onExit) {
@@ -35,146 +24,105 @@ export class MemoryGame {
         this.canvas = ctx.canvas;
         this.onExit = onExit;
         this.isRunning = true;
-        this.matchedPairs = 0;
+        this.level = 1;
         this.moves = 0;
-        this.flippedCards = [];
-        this.canFlip = true;
         this.particles = [];
+        this.time = 0;
         
-        // Dekorative Sterne generieren
         this.generateStars();
+        this.initLevel();
         
-        // Karten erstellen
-        this.createCards();
-        
-        // Touch/Click Event
         this.canvas.addEventListener('click', this.handleClick);
-        this.canvas.addEventListener('touchstart', this.handleTouch);
+        this.canvas.addEventListener('touchstart', this.handleClick);
         
-        // Render-Loop
-        this.render();
+        this.gameLoop();
     }
     
     stop() {
         this.isRunning = false;
         this.canvas.removeEventListener('click', this.handleClick);
-        this.canvas.removeEventListener('touchstart', this.handleTouch);
+        this.canvas.removeEventListener('touchstart', this.handleClick);
     }
     
     generateStars() {
         this.stars = [];
-        for (let i = 0; i < 20; i++) {
+        for (let i = 0; i < 100; i++) {
             this.stars.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
-                size: 1 + Math.random() * 2,
-                opacity: Math.random(),
-                speed: 0.5 + Math.random() * 0.5
+                size: Math.random() * 2 + 0.5,
+                twinkle: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.03
             });
         }
     }
     
-    createCards() {
+    initLevel() {
+        const emojis = ['🌟', '🚀', '🎈', '🎮', '🌈', '🍕', '🐱', '🦄', '🎪', '💎', '🌙', '⚡'];
+        const pairs = 3 + this.level;
+        const selectedEmojis = emojis.slice(0, pairs);
+        
         this.cards = [];
+        this.flippedCards = [];
+        this.matchedPairs = 0;
+        this.isChecking = false;
         
-        // Paare erstellen
-        const pairs = [];
-        for (let i = 0; i < this.totalPairs; i++) {
-            const colorData = this.colors[i];
-            pairs.push({ ...colorData, id: i });
-            pairs.push({ ...colorData, id: i });
-        }
+        const cardEmojis = [...selectedEmojis, ...selectedEmojis].sort(() => Math.random() - 0.5);
         
-        // Mischen
-        pairs.sort(() => Math.random() - 0.5);
+        const cols = pairs <= 4 ? 4 : (pairs <= 6 ? 4 : 6);
+        const rows = Math.ceil(cardEmojis.length / cols);
+        const cardWidth = Math.min(75, (this.canvas.width - 60) / cols);
+        const cardHeight = cardWidth * 1.2;
+        const spacingX = (this.canvas.width - cols * cardWidth) / (cols + 1);
+        const spacingY = 15;
+        const startY = 130;
         
-        // Karten positionieren
-        const cols = 4;
-        const rows = 3;
-        const cardWidth = 100;
-        const cardHeight = 130;
-        const spacing = 20;
-        
-        const totalWidth = cols * cardWidth + (cols - 1) * spacing;
-        const totalHeight = rows * cardHeight + (rows - 1) * spacing;
-        const startX = (this.canvas.width - totalWidth) / 2;
-        const startY = (this.canvas.height - totalHeight) / 2 + 30;
-        
-        for (let i = 0; i < pairs.length; i++) {
-            const col = i % cols;
+        for (let i = 0; i < cardEmojis.length; i++) {
             const row = Math.floor(i / cols);
+            const col = i % cols;
             
             this.cards.push({
-                x: startX + col * (cardWidth + spacing),
-                y: startY + row * (cardHeight + spacing),
+                x: spacingX + col * (cardWidth + spacingX),
+                y: startY + row * (cardHeight + spacingY),
                 width: cardWidth,
                 height: cardHeight,
-                color: pairs[i].color,
-                lightColor: pairs[i].light,
-                name: pairs[i].name,
-                id: pairs[i].id,
-                isFlipped: false,
-                isMatched: false,
+                emoji: cardEmojis[i],
+                flipped: false,
+                matched: false,
                 flipProgress: 0,
-                matchAnimation: 0,
-                scale: 1
+                glow: Math.random() * Math.PI * 2,
+                matchGlow: 0
             });
         }
-    }
-    
-    getMousePos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    }
-    
-    getTouchPos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        return {
-            x: touch.clientX - rect.left,
-            y: touch.clientY - rect.top
-        };
     }
     
     handleClick = (e) => {
-        const pos = this.getMousePos(e);
-        this.checkCardClick(pos.x, pos.y);
-    }
-    
-    handleTouch = (e) => {
+        if (this.isChecking) return;
         e.preventDefault();
-        const pos = this.getTouchPos(e);
-        this.checkCardClick(pos.x, pos.y);
-    }
-    
-    checkCardClick(x, y) {
-        if (!this.canFlip) return;
-        if (this.flippedCards.length >= 2) return;
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
         
         for (let card of this.cards) {
-            if (card.isMatched || card.isFlipped) continue;
-            
             if (x >= card.x && x <= card.x + card.width &&
-                y >= card.y && y <= card.y + card.height) {
-                
+                y >= card.y && y <= card.y + card.height &&
+                !card.flipped && !card.matched) {
                 this.flipCard(card);
-                this.playFlipSound();
                 break;
             }
         }
     }
     
     flipCard(card) {
-        card.isFlipped = true;
-        this.flippedCards.push(card);
+        card.flipped = true;
         this.animateFlip(card, true);
+        this.flippedCards.push(card);
+        audioManager.playClickSound();
         
         if (this.flippedCards.length === 2) {
             this.moves++;
-            this.canFlip = false;
+            this.isChecking = true;
             
             setTimeout(() => {
                 this.checkMatch();
@@ -182,93 +130,61 @@ export class MemoryGame {
         }
     }
     
+    animateFlip(card, toFront) {
+        const startTime = Date.now();
+        const duration = 300;
+        
+        const animate = () => {
+            const elapsed = Date.now() - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            card.flipProgress = toFront ? progress : 1 - progress;
+            
+            if (progress < 1 && this.isRunning) {
+                requestAnimationFrame(animate);
+            }
+        };
+        animate();
+    }
+    
     checkMatch() {
         const [card1, card2] = this.flippedCards;
         
-        if (card1.id === card2.id) {
-            // Match gefunden!
-            card1.isMatched = true;
-            card2.isMatched = true;
+        if (card1.emoji === card2.emoji) {
+            card1.matched = true;
+            card2.matched = true;
             this.matchedPairs++;
-            
-            this.animateMatch(card1);
-            this.animateMatch(card2);
             this.createMatchParticles(card1);
             this.createMatchParticles(card2);
-            this.playSuccessSound();
+            audioManager.playSuccessSound();
             
-            this.flippedCards = [];
-            this.canFlip = true;
-            
-            // Alle Paare gefunden?
-            if (this.matchedPairs === this.totalPairs) {
-                setTimeout(() => {
-                    this.stop();
-                    if (this.onExit) this.onExit();
-                }, 1500);
+            if (this.matchedPairs >= this.cards.length / 2) {
+                this.levelComplete();
             }
         } else {
-            // Kein Match - zurückdrehen
-            this.playErrorSound();
-            
+            this.animateFlip(card1, false);
+            this.animateFlip(card2, false);
             setTimeout(() => {
-                card1.isFlipped = false;
-                card2.isFlipped = false;
-                this.animateFlip(card1, false);
-                this.animateFlip(card2, false);
-                
-                this.flippedCards = [];
-                this.canFlip = true;
-            }, 500);
+                card1.flipped = false;
+                card2.flipped = false;
+            }, 300);
+            audioManager.playErrorSound();
         }
+        
+        this.flippedCards = [];
+        this.isChecking = false;
     }
     
-    animateFlip(card, toFlipped) {
-        const startTime = Date.now();
-        const duration = 300;
-        const startProgress = card.flipProgress;
-        const targetProgress = toFlipped ? 1 : 0;
-        
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            card.flipProgress = startProgress + (targetProgress - startProgress) * progress;
-            
-            if (progress < 1 && this.isRunning) {
-                requestAnimationFrame(animate);
-            }
-        };
-        
-        requestAnimationFrame(animate);
-    }
-    
-    animateMatch(card) {
-        card.matchAnimation = 1;
-        const startTime = Date.now();
-        const duration = 500;
-        
-        const animate = () => {
-            const elapsed = Date.now() - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            if (progress < 0.5) {
-                card.scale = 1 + progress * 0.4;
+    levelComplete() {
+        setTimeout(() => {
+            if (this.level >= this.maxLevel) {
+                this.stop();
+                if (this.onExit) this.onExit();
             } else {
-                card.scale = 1.2 - (progress - 0.5) * 0.4;
+                this.level++;
+                this.initLevel();
+                audioManager.playLevelUpSound();
             }
-            
-            card.matchAnimation = 1 - progress;
-            
-            if (progress < 1 && this.isRunning) {
-                requestAnimationFrame(animate);
-            } else {
-                card.scale = 1;
-                card.matchAnimation = 0;
-            }
-        };
-        
-        requestAnimationFrame(animate);
+        }, 1500);
     }
     
     createMatchParticles(card) {
@@ -277,29 +193,116 @@ export class MemoryGame {
         
         for (let i = 0; i < 20; i++) {
             const angle = (Math.PI * 2 * i) / 20;
-            const speed = 2 + Math.random() * 2;
+            const speed = 3 + Math.random() * 4;
             this.particles.push({
-                x: centerX,
-                y: centerY,
+                x: centerX, y: centerY,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 1,
-                color: card.color,
-                size: 3 + Math.random() * 4
+                color: ['#ff00ff', '#00ffff', '#ffff00'][Math.floor(Math.random() * 3)],
+                size: 4 + Math.random() * 5
             });
         }
     }
     
-    playFlipSound() {
-        audioManager.playFlipSound();
+    gameLoop = () => {
+        if (!this.isRunning) return;
+        this.time += 0.016;
+        this.render();
+        requestAnimationFrame(this.gameLoop);
     }
     
-    playSuccessSound() {
-        audioManager.playSuccessSound();
-    }
-    
-    playErrorSound() {
-        audioManager.playErrorSound();
+    render() {
+        // 🌌 COSMIC HINTERGRUND
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        gradient.addColorStop(0, '#050520');
+        gradient.addColorStop(0.5, '#100540');
+        gradient.addColorStop(1, '#050520');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Sterne
+        for (let star of this.stars) {
+            star.twinkle += star.speed;
+            const alpha = 0.3 + Math.sin(star.twinkle) * 0.5;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+            this.ctx.beginPath();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // Nebel
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.06;
+        const nebulaGrad = this.ctx.createRadialGradient(
+            this.canvas.width * 0.3, this.canvas.height * 0.4, 0,
+            this.canvas.width * 0.3, this.canvas.height * 0.4, 250
+        );
+        nebulaGrad.addColorStop(0, '#ff00ff');
+        nebulaGrad.addColorStop(1, 'transparent');
+        this.ctx.fillStyle = nebulaGrad;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        const nebulaGrad2 = this.ctx.createRadialGradient(
+            this.canvas.width * 0.7, this.canvas.height * 0.6, 0,
+            this.canvas.width * 0.7, this.canvas.height * 0.6, 200
+        );
+        nebulaGrad2.addColorStop(0, '#00ffff');
+        nebulaGrad2.addColorStop(1, 'transparent');
+        this.ctx.fillStyle = nebulaGrad2;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
+        
+        // UI
+        this.ctx.save();
+        
+        // Titel
+        this.ctx.shadowColor = '#ffff00';
+        this.ctx.shadowBlur = 30;
+        this.ctx.fillStyle = '#ffff00';
+        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('🧠 Memory Match! 🧠', this.canvas.width / 2, 35);
+        
+        // Level
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 15;
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.font = 'bold 20px sans-serif';
+        this.ctx.fillText(`Level ${this.level}/${this.maxLevel}`, this.canvas.width / 2, 65);
+        
+        // Paare & Züge
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 18px sans-serif';
+        this.ctx.fillText(`✨ ${this.matchedPairs}/${this.cards.length / 2} Paare | ${this.moves} Züge`, this.canvas.width / 2, 95);
+        
+        this.ctx.restore();
+        
+        // Karten
+        for (let card of this.cards) {
+            this.drawCard(card);
+        }
+        
+        // Partikel
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx; p.y += p.vy; p.life -= 0.025;
+            
+            if (p.life > 0) {
+                this.ctx.fillStyle = p.color;
+                this.ctx.shadowColor = p.color;
+                this.ctx.shadowBlur = 12;
+                this.ctx.globalAlpha = p.life;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
+            } else {
+                this.particles.splice(i, 1);
+            }
+        }
     }
     
     drawCard(card) {
@@ -308,218 +311,69 @@ export class MemoryGame {
         const centerX = card.x + card.width / 2;
         const centerY = card.y + card.height / 2;
         
+        card.glow += 0.03;
+        const glowIntensity = card.matched ? 25 : (10 + Math.sin(card.glow) * 5);
+        const glowColor = card.matched ? '#00ff88' : '#ff00ff';
+        
+        // 3D Flip Transformation
         this.ctx.translate(centerX, centerY);
-        this.ctx.scale(card.scale, card.scale);
-        
-        // 3D Flip-Effekt
         const scaleX = Math.abs(Math.cos(card.flipProgress * Math.PI));
-        const isBackVisible = card.flipProgress < 0.5;
-        
-        this.ctx.scale(scaleX, 1);
+        this.ctx.scale(scaleX || 0.01, 1);
         this.ctx.translate(-card.width / 2, -card.height / 2);
         
         // Schatten
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.2)';
-        this.ctx.shadowBlur = 15;
-        this.ctx.shadowOffsetY = 5;
+        this.ctx.shadowColor = glowColor;
+        this.ctx.shadowBlur = glowIntensity;
         
-        if (isBackVisible) {
-            // Rückseite (verdeckt)
-            const backGradient = this.ctx.createLinearGradient(0, 0, 0, card.height);
-            backGradient.addColorStop(0, '#6366f1');
-            backGradient.addColorStop(1, '#4f46e5');
-            
-            this.ctx.fillStyle = backGradient;
-            this.roundRect(0, 0, card.width, card.height, 15);
-            this.ctx.fill();
-            
-            // Muster auf Rückseite
-            this.ctx.shadowBlur = 0;
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
-            this.ctx.lineWidth = 3;
-            
-            // Diagonale Linien
-            for (let i = 0; i < 5; i++) {
-                this.ctx.beginPath();
-                this.ctx.moveTo(i * 25, 0);
-                this.ctx.lineTo(i * 25 + 50, card.height);
-                this.ctx.stroke();
-            }
-            
-            // Fragezeichen
-            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.4)';
-            this.ctx.font = 'bold 40px sans-serif';
+        // Karte
+        const isShowingFront = card.flipProgress > 0.5;
+        
+        if (isShowingFront && (card.flipped || card.matched)) {
+            // Vorderseite
+            const frontGrad = this.ctx.createLinearGradient(0, 0, card.width, card.height);
+            frontGrad.addColorStop(0, '#2a1050');
+            frontGrad.addColorStop(1, '#1a0030');
+            this.ctx.fillStyle = frontGrad;
+        } else {
+            // Rückseite
+            const backGrad = this.ctx.createLinearGradient(0, 0, card.width, card.height);
+            backGrad.addColorStop(0, '#ff00ff');
+            backGrad.addColorStop(1, '#8800aa');
+            this.ctx.fillStyle = backGrad;
+        }
+        
+        this.ctx.beginPath();
+        this.ctx.roundRect(0, 0, card.width, card.height, 12);
+        this.ctx.fill();
+        
+        // Rahmen
+        this.ctx.strokeStyle = isShowingFront ? 'rgba(255, 255, 255, 0.3)' : 'rgba(255, 255, 255, 0.5)';
+        this.ctx.lineWidth = 3;
+        this.ctx.stroke();
+        
+        this.ctx.shadowBlur = 0;
+        
+        if (isShowingFront && (card.flipped || card.matched)) {
+            // Emoji
+            this.ctx.font = `${card.width * 0.5}px Arial`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(card.emoji, card.width / 2, card.height / 2);
+        } else {
+            // Fragezeichen auf Rückseite
+            this.ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+            this.ctx.font = `bold ${card.width * 0.5}px sans-serif`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
             this.ctx.fillText('?', card.width / 2, card.height / 2);
-            
-        } else {
-            // Vorderseite (Farbe)
-            const frontGradient = this.ctx.createLinearGradient(0, 0, 0, card.height);
-            frontGradient.addColorStop(0, card.lightColor);
-            frontGradient.addColorStop(1, card.color);
-            
-            this.ctx.fillStyle = frontGradient;
-            this.roundRect(0, 0, card.width, card.height, 15);
-            this.ctx.fill();
-            
-            // Weisser Rand innen
-            this.ctx.shadowBlur = 0;
-            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
-            this.ctx.lineWidth = 4;
-            this.roundRect(5, 5, card.width - 10, card.height - 10, 12);
-            this.ctx.stroke();
-            
-            // Farbiger Kreis in der Mitte
-            const circleGradient = this.ctx.createRadialGradient(
-                card.width / 2 - 10,
-                card.height / 2 - 10,
-                0,
-                card.width / 2,
-                card.height / 2,
-                30
-            );
-            circleGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-            circleGradient.addColorStop(0.5, card.color);
-            circleGradient.addColorStop(1, this.darkenColor(card.color, 20));
-            
-            this.ctx.fillStyle = circleGradient;
-            this.ctx.beginPath();
-            this.ctx.arc(card.width / 2, card.height / 2, 30, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Glanz-Effekt
-            const glowGradient = this.ctx.createRadialGradient(
-                card.width / 2 - 10,
-                card.height / 2 - 10,
-                0,
-                card.width / 2,
-                card.height / 2,
-                25
-            );
-            glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.6)');
-            glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            this.ctx.fillStyle = glowGradient;
-            this.ctx.fill();
         }
         
-        // Match-Glow-Effekt
-        if (card.matchAnimation > 0) {
-            this.ctx.shadowColor = card.color;
-            this.ctx.shadowBlur = 30 * card.matchAnimation;
-            this.ctx.strokeStyle = card.color;
-            this.ctx.lineWidth = 5;
-            this.roundRect(0, 0, card.width, card.height, 15);
-            this.ctx.stroke();
-        }
-        
-        this.ctx.restore();
-    }
-    
-    roundRect(x, y, width, height, radius) {
+        // Highlight oben
+        this.ctx.fillStyle = 'rgba(255, 255, 255, 0.15)';
         this.ctx.beginPath();
-        this.ctx.moveTo(x + radius, y);
-        this.ctx.lineTo(x + width - radius, y);
-        this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-        this.ctx.lineTo(x + width, y + height - radius);
-        this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        this.ctx.lineTo(x + radius, y + height);
-        this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-        this.ctx.lineTo(x, y + radius);
-        this.ctx.quadraticCurveTo(x, y, x + radius, y);
-        this.ctx.closePath();
-    }
-    
-    darkenColor(color, percent) {
-        const num = parseInt(color.replace("#",""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = Math.max(0, (num >> 16) - amt);
-        const G = Math.max(0, ((num >> 8) & 0x00FF) - amt);
-        const B = Math.max(0, (num & 0x0000FF) - amt);
-        return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-    }
-    
-    render = () => {
-        if (!this.isRunning) return;
-        
-        // 🌌 COSMIC HINTERGRUND
-        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#0a0a1a');
-        gradient.addColorStop(0.5, '#1a0a2e');
-        gradient.addColorStop(1, '#0a0a1a');
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // Animierte Sterne
-        for (let star of this.stars) {
-            star.opacity = 0.3 + Math.abs(Math.sin(Date.now() * 0.001 * star.speed)) * 0.5;
-            this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
-            this.ctx.beginPath();
-            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
-        
-        // Nebel-Effekte
-        const time = Date.now() * 0.0003;
-        this.ctx.fillStyle = `rgba(139, 92, 246, ${0.1 + Math.sin(time) * 0.05})`;
-        this.ctx.beginPath();
-        this.ctx.ellipse(this.canvas.width * 0.2, this.canvas.height * 0.7, 200, 100, time, 0, Math.PI * 2);
+        this.ctx.roundRect(3, 3, card.width - 6, card.height * 0.3, [10, 10, 0, 0]);
         this.ctx.fill();
         
-        // Titel mit Neon-Effekt
-        this.ctx.save();
-        this.ctx.shadowColor = '#fbbf24';
-        this.ctx.shadowBlur = 25;
-        this.ctx.fillStyle = '#fbbf24';
-        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('🃏 Finde alle Paare! 🃏', this.canvas.width / 2, 35);
         this.ctx.restore();
-        
-        // Info-Bereich mit Glow
-        this.ctx.save();
-        const infoY = 70;
-        
-        // Züge
-        this.ctx.shadowColor = '#ff8800';
-        this.ctx.shadowBlur = 15;
-        this.ctx.font = 'bold 20px sans-serif';
-        this.ctx.fillStyle = '#ff8800';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(`Züge: ${this.moves}`, this.canvas.width / 2 - 80, infoY);
-        
-        // Paare gefunden
-        this.ctx.shadowColor = '#00ff88';
-        this.ctx.fillStyle = '#00ff88';
-        this.ctx.fillText(`Paare: ${this.matchedPairs}/${this.totalPairs}`, this.canvas.width / 2 + 80, infoY);
-        this.ctx.restore();
-        
-        // Karten zeichnen
-        for (let card of this.cards) {
-            this.drawCard(card);
-        }
-        
-        // Partikel zeichnen
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.2; // Gravity
-            p.life -= 0.02;
-            
-            if (p.life > 0) {
-                this.ctx.fillStyle = p.color;
-                this.ctx.globalAlpha = p.life;
-                this.ctx.beginPath();
-                this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-                this.ctx.fill();
-                this.ctx.globalAlpha = 1;
-            } else {
-                this.particles.splice(i, 1);
-            }
-        }
-        
-        requestAnimationFrame(this.render);
     }
 }
-

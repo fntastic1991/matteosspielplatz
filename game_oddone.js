@@ -1,4 +1,4 @@
-// game_oddone.js - Finde den Unterschied Spiel
+// game_oddone.js - 🌌 COSMIC Finde den Unterschied Spiel
 import { audioManager } from './audio_utils.js';
 
 export class OddOneGame {
@@ -8,19 +8,15 @@ export class OddOneGame {
         this.ctx = null;
         this.onExit = null;
         
-        this.shapes = [];
+        this.items = [];
+        this.oddIndex = -1;
         this.level = 1;
-        this.totalLevels = 10;
+        this.maxLevel = 15;
         this.score = 0;
-        
-        // Visuelle Effekte
         this.particles = [];
         this.stars = [];
-        this.successAnimation = 0;
-        
-        // Form-Typen
-        this.shapeTypes = ['circle', 'square', 'triangle', 'star', 'heart', 'diamond'];
-        this.colors = ['#ef4444', '#3b82f6', '#10b981', '#fbbf24', '#a855f7', '#ec4899', '#f97316', '#14b8a6'];
+        this.time = 0;
+        this.feedback = null;
     }
     
     async start(ctx, onExit) {
@@ -31,558 +27,330 @@ export class OddOneGame {
         this.level = 1;
         this.score = 0;
         this.particles = [];
-        this.successAnimation = 0;
+        this.time = 0;
         
-        // Dekorative Sterne generieren
         this.generateStars();
+        this.generateLevel();
         
-        // Level erstellen
-        this.createLevel();
-        
-        // Touch/Click Event
         this.canvas.addEventListener('click', this.handleClick);
-        this.canvas.addEventListener('touchstart', this.handleTouch);
+        this.canvas.addEventListener('touchstart', this.handleClick);
         
-        // Render-Loop
-        this.render();
+        this.gameLoop();
     }
     
     stop() {
         this.isRunning = false;
         this.canvas.removeEventListener('click', this.handleClick);
-        this.canvas.removeEventListener('touchstart', this.handleTouch);
+        this.canvas.removeEventListener('touchstart', this.handleClick);
     }
     
     generateStars() {
         this.stars = [];
-        for (let i = 0; i < 25; i++) {
+        for (let i = 0; i < 90; i++) {
             this.stars.push({
                 x: Math.random() * this.canvas.width,
                 y: Math.random() * this.canvas.height,
-                size: 1 + Math.random() * 2,
-                opacity: Math.random(),
-                speed: 0.5 + Math.random() * 0.5
+                size: Math.random() * 2.5 + 0.5,
+                twinkle: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.04
             });
         }
     }
     
-    createLevel() {
-        this.shapes = [];
+    generateLevel() {
+        this.items = [];
+        this.feedback = null;
         
-        // Wähle zufällige Form und Farbe für die normalen Formen
-        const normalShape = this.shapeTypes[Math.floor(Math.random() * this.shapeTypes.length)];
-        const normalColor = this.colors[Math.floor(Math.random() * this.colors.length)];
-        const normalSize = 80;
-        
-        // Wähle unterschiedliche Form/Farbe für das Odd One
-        let oddShape, oddColor, oddSize;
-        
-        // Level bestimmt Schwierigkeit - ABER immer gut sichtbar!
-        if (this.level <= 4) {
-            // Level 1-4: Nur unterschiedliche Form (sehr einfach)
-            do {
-                oddShape = this.shapeTypes[Math.floor(Math.random() * this.shapeTypes.length)];
-            } while (oddShape === normalShape);
-            oddColor = normalColor;
-            oddSize = normalSize;
-        } else if (this.level <= 7) {
-            // Level 5-7: Nur unterschiedliche Farbe (gut sichtbar)
-            oddShape = normalShape;
-            do {
-                oddColor = this.colors[Math.floor(Math.random() * this.colors.length)];
-            } while (oddColor === normalColor);
-            oddSize = normalSize;
-        } else {
-            // Level 8-10: BEIDES unterschiedlich - Form UND Farbe! (extra offensichtlich)
-            do {
-                oddShape = this.shapeTypes[Math.floor(Math.random() * this.shapeTypes.length)];
-            } while (oddShape === normalShape);
-            do {
-                oddColor = this.colors[Math.floor(Math.random() * this.colors.length)];
-            } while (oddColor === normalColor);
-            oddSize = normalSize;
-        }
-        
-        // 4 Formen erstellen
-        const shapeConfigs = [
-            { type: normalShape, color: normalColor, size: normalSize, isOdd: false },
-            { type: normalShape, color: normalColor, size: normalSize, isOdd: false },
-            { type: normalShape, color: normalColor, size: normalSize, isOdd: false },
-            { type: oddShape, color: oddColor, size: oddSize, isOdd: true }
+        const categories = [
+            { normal: ['🍎', '🍎', '🍎', '🍎'], odd: '🍐' },
+            { normal: ['🐶', '🐶', '🐶', '🐶'], odd: '🐱' },
+            { normal: ['⭐', '⭐', '⭐', '⭐'], odd: '🌙' },
+            { normal: ['🚗', '🚗', '🚗', '🚗'], odd: '🚌' },
+            { normal: ['🎈', '🎈', '🎈', '🎈'], odd: '🎁' },
+            { normal: ['🌸', '🌸', '🌸', '🌸'], odd: '🌻' },
+            { normal: ['🐟', '🐟', '🐟', '🐟'], odd: '🐙' },
+            { normal: ['🍕', '🍕', '🍕', '🍕'], odd: '🍔' },
+            { normal: ['🦋', '🦋', '🦋', '🦋'], odd: '🐝' },
+            { normal: ['🎸', '🎸', '🎸', '🎸'], odd: '🎹' }
         ];
         
-        // Mischen
-        shapeConfigs.sort(() => Math.random() - 0.5);
+        const numItems = Math.min(4 + Math.floor(this.level / 3), 9);
+        const category = categories[Math.floor(Math.random() * categories.length)];
         
-        // Positionieren (2x2 Grid mit mehr Abstand für Karten)
-        const spacing = 200;
-        const centerX = this.canvas.width / 2;
-        const centerY = this.canvas.height / 2 + 20;
+        this.oddIndex = Math.floor(Math.random() * numItems);
         
-        const positions = [
-            { x: centerX - spacing / 2, y: centerY - spacing / 2 },
-            { x: centerX + spacing / 2, y: centerY - spacing / 2 },
-            { x: centerX - spacing / 2, y: centerY + spacing / 2 },
-            { x: centerX + spacing / 2, y: centerY + spacing / 2 }
-        ];
+        const itemSize = numItems <= 4 ? 75 : (numItems <= 6 ? 65 : 55);
+        const cols = numItems <= 4 ? 2 : (numItems <= 6 ? 3 : 3);
+        const rows = Math.ceil(numItems / cols);
         
-        for (let i = 0; i < 4; i++) {
-            this.shapes.push({
-                x: positions[i].x,
-                y: positions[i].y,
-                type: shapeConfigs[i].type,
-                color: shapeConfigs[i].color,
-                size: shapeConfigs[i].size,
-                isOdd: shapeConfigs[i].isOdd,
+        const spacing = 20;
+        const totalWidth = cols * itemSize + (cols - 1) * spacing;
+        const totalHeight = rows * itemSize + (rows - 1) * spacing;
+        const startX = (this.canvas.width - totalWidth) / 2;
+        const startY = 180;
+        
+        for (let i = 0; i < numItems; i++) {
+            const col = i % cols;
+            const row = Math.floor(i / cols);
+            
+            this.items.push({
+                x: startX + col * (itemSize + spacing),
+                y: startY + row * (itemSize + spacing),
+                size: itemSize,
+                emoji: i === this.oddIndex ? category.odd : category.normal[0],
+                isOdd: i === this.oddIndex,
                 scale: 1,
-                rotation: 0,
-                pulse: Math.random() * Math.PI * 2
+                glow: Math.random() * Math.PI * 2,
+                wobble: Math.random() * Math.PI * 2
             });
         }
-    }
-    
-    getMousePos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        return {
-            x: e.clientX - rect.left,
-            y: e.clientY - rect.top
-        };
-    }
-    
-    getTouchPos(e) {
-        const rect = this.canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        return {
-            x: touch.clientX - rect.left,
-            y: touch.clientY - rect.top
-        };
     }
     
     handleClick = (e) => {
-        const pos = this.getMousePos(e);
-        this.checkShapeClick(pos.x, pos.y);
-    }
-    
-    handleTouch = (e) => {
+        if (this.feedback) return;
         e.preventDefault();
-        const pos = this.getTouchPos(e);
-        this.checkShapeClick(pos.x, pos.y);
-    }
-    
-    checkShapeClick(x, y) {
-        for (let shape of this.shapes) {
-            // Karten-Hit-Box (140x160)
-            const cardWidth = 140;
-            const cardHeight = 160;
-            
-            if (x >= shape.x - cardWidth / 2 && x <= shape.x + cardWidth / 2 &&
-                y >= shape.y - cardHeight / 2 && y <= shape.y + cardHeight / 2) {
-                if (shape.isOdd) {
-                    // Richtig!
-                    this.score++;
-                    this.playSuccessSound();
-                    this.createSuccessParticles(shape);
-                    this.animateSuccess(shape);
-                    this.successAnimation = 1;
-                    
-                    // Nächstes Level
-                    if (this.level < this.totalLevels) {
-                        this.level++;
-                        setTimeout(() => {
-                            this.successAnimation = 0;
-                            this.createLevel();
-                        }, 1500);
-                    } else {
-                        // Alle Level geschafft!
-                        setTimeout(() => {
-                            this.stop();
-                            if (this.onExit) this.onExit();
-                        }, 2000);
-                    }
-                } else {
-                    // Falsch!
-                    this.playErrorSound();
-                    this.animateShake(shape);
-                }
+        
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.touches ? e.touches[0].clientX : e.clientX) - rect.left;
+        const y = (e.touches ? e.touches[0].clientY : e.clientY) - rect.top;
+        
+        for (let item of this.items) {
+            if (x >= item.x && x <= item.x + item.size && y >= item.y && y <= item.y + item.size) {
+                this.checkAnswer(item);
                 break;
             }
         }
     }
     
-    animateSuccess(shape) {
+    checkAnswer(item) {
+        if (item.isOdd) {
+            this.feedback = { correct: true, item };
+            this.score += 10 * this.level;
+            this.createSuccessParticles(item.x + item.size / 2, item.y + item.size / 2);
+            this.animateSuccess(item);
+            audioManager.playSuccessSound();
+            
+            setTimeout(() => {
+                if (this.level >= this.maxLevel) {
+                    this.stop();
+                    if (this.onExit) this.onExit();
+                } else {
+                    this.level++;
+                    this.generateLevel();
+                }
+            }, 1200);
+        } else {
+            this.feedback = { correct: false, item };
+            this.animateShake(item);
+            audioManager.playErrorSound();
+            
+            setTimeout(() => {
+                this.feedback = null;
+            }, 600);
+        }
+    }
+    
+    animateSuccess(item) {
         const startTime = Date.now();
         const duration = 500;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
-            if (progress < 0.5) {
-                shape.scale = 1 + progress * 0.8;
-            } else {
-                shape.scale = 1.4 - (progress - 0.5) * 0.8;
-            }
-            
-            shape.rotation += 0.1;
+            item.scale = progress < 0.4 ? 1 + progress * 0.6 : 1.24 - (progress - 0.4) * 0.6;
             
             if (progress < 1 && this.isRunning) {
                 requestAnimationFrame(animate);
             } else {
-                shape.scale = 1;
+                item.scale = 1;
             }
         };
-        
-        requestAnimationFrame(animate);
+        animate();
     }
     
-    animateShake(shape) {
+    animateShake(item) {
         const startTime = Date.now();
-        const duration = 300;
-        const originalX = shape.x;
+        const duration = 350;
+        const startX = item.x;
         
         const animate = () => {
             const elapsed = Date.now() - startTime;
             const progress = Math.min(elapsed / duration, 1);
-            
-            shape.x = originalX + Math.sin(progress * Math.PI * 6) * 10 * (1 - progress);
+            item.x = startX + Math.sin(progress * Math.PI * 5) * 10 * (1 - progress);
             
             if (progress < 1 && this.isRunning) {
                 requestAnimationFrame(animate);
             } else {
-                shape.x = originalX;
+                item.x = startX;
             }
         };
-        
-        requestAnimationFrame(animate);
+        animate();
     }
     
-    createSuccessParticles(shape) {
+    createSuccessParticles(x, y) {
         for (let i = 0; i < 30; i++) {
             const angle = (Math.PI * 2 * i) / 30;
-            const speed = 2 + Math.random() * 3;
+            const speed = 3 + Math.random() * 5;
             this.particles.push({
-                x: shape.x,
-                y: shape.y,
+                x, y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 1,
-                color: ['#FFD700', '#FFA500', '#FF69B4', '#00CED1'][Math.floor(Math.random() * 4)],
-                size: 3 + Math.random() * 5
+                color: ['#ff00ff', '#00ffff', '#ffff00'][Math.floor(Math.random() * 3)],
+                size: 5 + Math.random() * 5
             });
         }
     }
     
-    playSuccessSound() {
-        audioManager.playSuccessSound();
-    }
-    
-    playErrorSound() {
-        audioManager.playErrorSound();
-    }
-    
-    drawShape(shape) {
-        this.ctx.save();
-        
-        this.ctx.translate(shape.x, shape.y);
-        this.ctx.scale(shape.scale, shape.scale);
-        
-        // Pulsierender Effekt
-        shape.pulse += 0.05;
-        const pulseScale = 1 + Math.sin(shape.pulse) * 0.03;
-        this.ctx.scale(pulseScale, pulseScale);
-        
-        // Karten-Container
-        const cardWidth = 140;
-        const cardHeight = 160;
-        const cardRadius = 20;
-        
-        // Karten-Schatten
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.25)';
-        this.ctx.shadowBlur = 20;
-        this.ctx.shadowOffsetY = 8;
-        
-        // Karten-Hintergrund (weiss)
-        this.ctx.fillStyle = 'white';
-        this.roundRect(-cardWidth / 2, -cardHeight / 2, cardWidth, cardHeight, cardRadius);
-        this.ctx.fill();
-        
-        this.ctx.shadowBlur = 0;
-        
-        // Innerer Rahmen (farbig)
-        const borderGradient = this.ctx.createLinearGradient(
-            -cardWidth / 2, -cardHeight / 2,
-            -cardWidth / 2, cardHeight / 2
-        );
-        borderGradient.addColorStop(0, this.lightenColor(shape.color, 40));
-        borderGradient.addColorStop(1, this.lightenColor(shape.color, 10));
-        this.ctx.strokeStyle = borderGradient;
-        this.ctx.lineWidth = 5;
-        this.roundRect(-cardWidth / 2 + 8, -cardHeight / 2 + 8, cardWidth - 16, cardHeight - 16, cardRadius - 5);
-        this.ctx.stroke();
-        
-        // Form in der Mitte zeichnen
-        this.ctx.rotate(shape.rotation);
-        
-        // Form zeichnen mit Verlauf
-        const gradient = this.ctx.createRadialGradient(-15, -15, 0, 0, 0, shape.size / 2);
-        gradient.addColorStop(0, this.lightenColor(shape.color, 30));
-        gradient.addColorStop(1, shape.color);
-        this.ctx.fillStyle = gradient;
-        
-        this.ctx.shadowColor = shape.color;
-        this.ctx.shadowBlur = 15;
-        
-        const size = shape.size / 2;
-        
-        switch(shape.type) {
-            case 'circle':
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, size, 0, Math.PI * 2);
-                this.ctx.fill();
-                break;
-                
-            case 'square':
-                this.ctx.fillRect(-size, -size, size * 2, size * 2);
-                break;
-                
-            case 'triangle':
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, -size);
-                this.ctx.lineTo(size, size);
-                this.ctx.lineTo(-size, size);
-                this.ctx.closePath();
-                this.ctx.fill();
-                break;
-                
-            case 'star':
-                this.drawStar(0, 0, 5, size, size * 0.5);
-                break;
-                
-            case 'heart':
-                this.drawHeart(0, 0, size);
-                break;
-                
-            case 'diamond':
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, -size);
-                this.ctx.lineTo(size * 0.6, 0);
-                this.ctx.lineTo(0, size);
-                this.ctx.lineTo(-size * 0.6, 0);
-                this.ctx.closePath();
-                this.ctx.fill();
-                break;
-        }
-        
-        // Glanz-Effekt auf Form
-        this.ctx.shadowBlur = 0;
-        const glowGradient = this.ctx.createRadialGradient(-size * 0.3, -size * 0.3, 0, 0, 0, size);
-        glowGradient.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
-        glowGradient.addColorStop(0.5, 'rgba(255, 255, 255, 0.3)');
-        glowGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-        this.ctx.fillStyle = glowGradient;
-        
-        // Glanz nur für die Form selbst
-        switch(shape.type) {
-            case 'circle':
-                this.ctx.beginPath();
-                this.ctx.arc(0, 0, size, 0, Math.PI * 2);
-                this.ctx.fill();
-                break;
-            case 'square':
-                this.ctx.fillRect(-size, -size, size * 2, size * 2);
-                break;
-            case 'triangle':
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, -size);
-                this.ctx.lineTo(size, size);
-                this.ctx.lineTo(-size, size);
-                this.ctx.closePath();
-                this.ctx.fill();
-                break;
-            case 'star':
-                this.drawStar(0, 0, 5, size, size * 0.5);
-                break;
-            case 'heart':
-                this.drawHeart(0, 0, size);
-                break;
-            case 'diamond':
-                this.ctx.beginPath();
-                this.ctx.moveTo(0, -size);
-                this.ctx.lineTo(size * 0.6, 0);
-                this.ctx.lineTo(0, size);
-                this.ctx.lineTo(-size * 0.6, 0);
-                this.ctx.closePath();
-                this.ctx.fill();
-                break;
-        }
-        
-        this.ctx.restore();
-    }
-    
-    drawStar(x, y, points, outer, inner) {
-        this.ctx.beginPath();
-        for (let i = 0; i < points * 2; i++) {
-            const radius = i % 2 === 0 ? outer : inner;
-            const angle = (i * Math.PI) / points - Math.PI / 2;
-            const px = x + radius * Math.cos(angle);
-            const py = y + radius * Math.sin(angle);
-            if (i === 0) {
-                this.ctx.moveTo(px, py);
-            } else {
-                this.ctx.lineTo(px, py);
-            }
-        }
-        this.ctx.closePath();
-        this.ctx.fill();
-    }
-    
-    drawHeart(x, y, size) {
-        this.ctx.beginPath();
-        const topCurveHeight = size * 0.3;
-        this.ctx.moveTo(x, y + topCurveHeight);
-        
-        // Left side
-        this.ctx.bezierCurveTo(
-            x, y,
-            x - size / 2, y,
-            x - size / 2, y + topCurveHeight
-        );
-        this.ctx.bezierCurveTo(
-            x - size / 2, y + (size + topCurveHeight) / 2,
-            x, y + (size + topCurveHeight) / 1.5,
-            x, y + size
-        );
-        
-        // Right side
-        this.ctx.bezierCurveTo(
-            x, y + (size + topCurveHeight) / 1.5,
-            x + size / 2, y + (size + topCurveHeight) / 2,
-            x + size / 2, y + topCurveHeight
-        );
-        this.ctx.bezierCurveTo(
-            x + size / 2, y,
-            x, y,
-            x, y + topCurveHeight
-        );
-        
-        this.ctx.closePath();
-        this.ctx.fill();
-    }
-    
-    lightenColor(color, percent) {
-        const num = parseInt(color.replace("#",""), 16);
-        const amt = Math.round(2.55 * percent);
-        const R = Math.min(255, (num >> 16) + amt);
-        const G = Math.min(255, ((num >> 8) & 0x00FF) + amt);
-        const B = Math.min(255, (num & 0x0000FF) + amt);
-        return "#" + (0x1000000 + R * 0x10000 + G * 0x100 + B).toString(16).slice(1);
-    }
-    
-    render = () => {
+    gameLoop = () => {
         if (!this.isRunning) return;
-        
-        // Hintergrund mit Verlauf (wärmer und freundlicher)
+        this.time += 0.016;
+        this.render();
+        requestAnimationFrame(this.gameLoop);
+    }
+    
+    render() {
+        // 🌌 COSMIC HINTERGRUND
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#ddd6fe');
-        gradient.addColorStop(1, '#e9d5ff');
+        gradient.addColorStop(0, '#100520');
+        gradient.addColorStop(0.5, '#1a0840');
+        gradient.addColorStop(1, '#100520');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Dekorative Sterne
+        // Sterne
         for (let star of this.stars) {
-            star.opacity = Math.abs(Math.sin(Date.now() * 0.001 * star.speed));
-            this.ctx.fillStyle = `rgba(168, 85, 247, ${star.opacity * 0.25})`;
+            star.twinkle += star.speed;
+            const alpha = 0.3 + Math.sin(star.twinkle) * 0.5;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             this.ctx.beginPath();
             this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
             this.ctx.fill();
         }
         
+        // Nebel
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.06;
+        const nebulaGrad = this.ctx.createRadialGradient(
+            this.canvas.width * 0.3, this.canvas.height * 0.5, 0,
+            this.canvas.width * 0.3, this.canvas.height * 0.5, 250
+        );
+        nebulaGrad.addColorStop(0, '#ff00ff');
+        nebulaGrad.addColorStop(1, 'transparent');
+        this.ctx.fillStyle = nebulaGrad;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.restore();
+        
+        // UI
+        this.ctx.save();
+        
         // Titel
-        this.ctx.save();
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        this.ctx.shadowBlur = 5;
-        this.ctx.fillStyle = '#1e293b';
-        this.ctx.font = 'bold 28px sans-serif';
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 30;
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🔍 Welche Form ist anders? 🔍', this.canvas.width / 2, 35);
-        this.ctx.restore();
+        this.ctx.fillText('🔍 Finde den Anderen! 🔍', this.canvas.width / 2, 35);
         
-        // Level Badge
-        this.ctx.save();
-        const badgeX = this.canvas.width / 2;
-        const badgeY = 70;
-        
-        const badgeGradient = this.ctx.createLinearGradient(badgeX - 60, badgeY - 15, badgeX + 60, badgeY + 15);
-        badgeGradient.addColorStop(0, '#c084fc');
-        badgeGradient.addColorStop(1, '#a855f7');
-        this.ctx.fillStyle = badgeGradient;
-        this.ctx.shadowColor = 'rgba(168, 85, 247, 0.5)';
+        // Level & Score
+        this.ctx.shadowColor = '#00ffff';
         this.ctx.shadowBlur = 15;
-        this.roundRect(badgeX - 60, badgeY - 15, 120, 30, 15);
-        this.ctx.fill();
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 20px sans-serif';
+        this.ctx.fillText(`Level ${this.level}/${this.maxLevel}`, this.canvas.width / 2, 70);
         
-        this.ctx.shadowBlur = 0;
-        this.ctx.fillStyle = 'white';
-        this.ctx.font = 'bold 18px sans-serif';
-        this.ctx.fillText(`⭐ Level ${this.level}/${this.totalLevels}`, badgeX, badgeY + 5);
+        this.ctx.shadowColor = '#ffff00';
+        this.ctx.fillStyle = '#ffff00';
+        this.ctx.fillText(`⭐ ${this.score}`, this.canvas.width / 2, 100);
+        
+        // Anweisung
+        this.ctx.shadowColor = '#00ff88';
+        this.ctx.shadowBlur = 10;
+        this.ctx.fillStyle = '#00ff88';
+        this.ctx.font = 'bold 20px sans-serif';
+        this.ctx.fillText('Welches ist anders?', this.canvas.width / 2, 140);
+        
         this.ctx.restore();
         
-        // Formen zeichnen
-        for (let shape of this.shapes) {
-            this.drawShape(shape);
+        // Items
+        for (let item of this.items) {
+            this.ctx.save();
+            
+            item.glow += 0.04;
+            item.wobble += 0.02;
+            const glowIntensity = 12 + Math.sin(item.glow) * 8;
+            const yOffset = Math.sin(item.wobble) * 2;
+            
+            // Karte
+            let cardColor = '#2a1060';
+            let glowColor = '#8800ff';
+            
+            if (this.feedback && this.feedback.item === item) {
+                if (this.feedback.correct) {
+                    cardColor = '#0a4020';
+                    glowColor = '#00ff88';
+                } else {
+                    cardColor = '#400a20';
+                    glowColor = '#ff0055';
+                }
+            }
+            
+            this.ctx.shadowColor = glowColor;
+            this.ctx.shadowBlur = glowIntensity;
+            
+            const grad = this.ctx.createLinearGradient(item.x, item.y, item.x, item.y + item.size);
+            grad.addColorStop(0, this.lightenColor(cardColor, 0.3));
+            grad.addColorStop(1, cardColor);
+            
+            this.ctx.fillStyle = grad;
+            this.ctx.beginPath();
+            this.ctx.roundRect(item.x, item.y, item.size * item.scale, item.size * item.scale, 15);
+            this.ctx.fill();
+            
+            // Border
+            this.ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            this.ctx.lineWidth = 3;
+            this.ctx.stroke();
+            
+            // Emoji
+            this.ctx.shadowBlur = 0;
+            this.ctx.font = `${item.size * 0.5 * item.scale}px Arial`;
+            this.ctx.textAlign = 'center';
+            this.ctx.textBaseline = 'middle';
+            this.ctx.fillText(item.emoji, item.x + item.size / 2, item.y + item.size / 2 + yOffset);
+            
+            this.ctx.restore();
         }
         
-        // Partikel zeichnen
+        // Partikel
         for (let i = this.particles.length - 1; i >= 0; i--) {
             const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.vy += 0.2; // Gravity
-            p.life -= 0.02;
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
             
             if (p.life > 0) {
                 this.ctx.fillStyle = p.color;
+                this.ctx.shadowColor = p.color;
+                this.ctx.shadowBlur = 10;
                 this.ctx.globalAlpha = p.life;
                 this.ctx.beginPath();
                 this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
                 this.ctx.fill();
                 this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
             } else {
                 this.particles.splice(i, 1);
             }
         }
-        
-        // Erfolgsanimation
-        if (this.successAnimation > 0) {
-            this.successAnimation -= 0.02;
-            const scale = 1 + (1 - this.successAnimation) * 0.5;
-            this.ctx.save();
-            this.ctx.globalAlpha = this.successAnimation;
-            this.ctx.translate(this.canvas.width / 2, this.canvas.height / 2);
-            this.ctx.scale(scale, scale);
-            this.ctx.font = 'bold 60px sans-serif';
-            this.ctx.fillStyle = '#10b981';
-            this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText('🎉', 0, 0);
-            this.ctx.restore();
-        }
-        
-        requestAnimationFrame(this.render);
     }
     
-    roundRect(x, y, width, height, radius) {
-        this.ctx.beginPath();
-        this.ctx.moveTo(x + radius, y);
-        this.ctx.lineTo(x + width - radius, y);
-        this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
-        this.ctx.lineTo(x + width, y + height - radius);
-        this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        this.ctx.lineTo(x + radius, y + height);
-        this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-        this.ctx.lineTo(x, y + radius);
-        this.ctx.quadraticCurveTo(x, y, x + radius, y);
-        this.ctx.closePath();
+    lightenColor(hex, factor) {
+        if (hex.startsWith('#')) {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const r = Math.min(255, ((num >> 16) & 255) + (255 - ((num >> 16) & 255)) * factor);
+            const g = Math.min(255, ((num >> 8) & 255) + (255 - ((num >> 8) & 255)) * factor);
+            const b = Math.min(255, (num & 255) + (255 - (num & 255)) * factor);
+            return `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+        }
+        return hex;
     }
 }
-

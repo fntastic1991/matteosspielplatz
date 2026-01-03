@@ -1,4 +1,4 @@
-// game_dodging.js - Ausweichen Spiel
+// game_dodging.js - 🌌 COSMIC Ausweichspiel
 import { audioManager } from './audio_utils.js';
 
 export class DodgingGame {
@@ -8,472 +8,447 @@ export class DodgingGame {
         this.ctx = null;
         this.onExit = null;
         
-        // Spieler
-        this.player = {
-            x: 0,
-            y: 0,
-            width: 60,
-            height: 60,
-            lane: 1, // 0 = links, 1 = mitte, 2 = rechts
-            targetLane: 1,
-            emoji: '🚗',
-            color: '#3b82f6'
-        };
-        
-        // Spielfeld
-        this.lanes = 3;
-        this.laneWidth = 0;
-        
-        // Fallende Objekte
+        this.player = { x: 0, y: 0, width: 50, height: 50, targetX: 0, glow: 0 };
         this.fallingObjects = [];
-        this.objectSpeed = 2;
-        this.spawnInterval = 100;
-        this.frameCount = 0;
+        this.baseSpeed = 1;
+        this.spawnRate = 80;
+        this.spawnTimer = 0;
         
-        // Level & Score
         this.score = 0;
-        this.level = 1;
-        this.maxLevel = 10;
         this.highScore = 0;
+        this.level = 1;
         this.gameOver = false;
         
-        // Objekt-Typen
-        this.objectTypes = [
-            { emoji: '🚙', color: '#ef4444', points: 1 },
-            { emoji: '🚕', color: '#f59e0b', points: 1 },
-            { emoji: '🚌', color: '#10b981', points: 2 },
-            { emoji: '🚛', color: '#8b5cf6', points: 2 },
-            { emoji: '🏍️', color: '#ec4899', points: 1 },
-            { emoji: '🚑', color: '#ef4444', points: 2 }
-        ];
-        
-        // Visuelle Effekte
         this.particles = [];
-        this.passedObjects = 0;
+        this.stars = [];
+        this.time = 0;
     }
     
-    start(ctx, onExit) {
+    async start(ctx, onExit) {
         this.ctx = ctx;
         this.canvas = ctx.canvas;
         this.onExit = onExit;
         this.isRunning = true;
         
-        this.reset();
+        this.player.x = this.canvas.width / 2;
+        this.player.y = this.canvas.height - 100;
+        this.player.targetX = this.player.x;
         
-        // Event Listener
+        this.fallingObjects = [];
+        this.score = 0;
+        this.level = 1;
+        this.gameOver = false;
+        this.baseSpeed = 1;
+        this.spawnRate = 80;
+        this.spawnTimer = 0;
+        this.particles = [];
+        this.time = 0;
+        
+        this.generateStars();
+        
+        this.canvas.addEventListener('mousemove', this.handleMouseMove);
+        this.canvas.addEventListener('touchmove', this.handleTouchMove);
         this.canvas.addEventListener('click', this.handleClick);
-        this.canvas.addEventListener('touchstart', this.handleTouchStart);
-        this.canvas.addEventListener('keydown', this.handleKeyDown);
+        this.canvas.addEventListener('touchstart', this.handleClick);
         
-        // Game Loop
         this.gameLoop();
     }
     
     stop() {
         this.isRunning = false;
+        this.canvas.removeEventListener('mousemove', this.handleMouseMove);
+        this.canvas.removeEventListener('touchmove', this.handleTouchMove);
         this.canvas.removeEventListener('click', this.handleClick);
-        this.canvas.removeEventListener('touchstart', this.handleTouchStart);
-        this.canvas.removeEventListener('keydown', this.handleKeyDown);
+        this.canvas.removeEventListener('touchstart', this.handleClick);
     }
     
-    reset() {
-        this.score = 0;
-        this.level = 1;
-        this.gameOver = false;
-        this.frameCount = 0;
-        this.fallingObjects = [];
-        this.particles = [];
-        this.passedObjects = 0;
-        
-        // Spieler Position
-        this.laneWidth = this.canvas.width / this.lanes;
-        this.player.lane = 1;
-        this.player.targetLane = 1;
-        this.player.x = this.laneWidth * this.player.lane + this.laneWidth / 2;
-        this.player.y = this.canvas.height - 100;
-        
-        // Level-Einstellungen
-        this.updateLevelSettings();
-    }
-    
-    updateLevelSettings() {
-        // Geschwindigkeit und Spawn-Rate erhöhen mit Level
-        this.objectSpeed = 2 + (this.level - 1) * 0.3;
-        this.spawnInterval = Math.max(60, 100 - (this.level - 1) * 5);
-    }
-    
-    handleClick = (e) => {
-        if (this.gameOver) {
-            this.reset();
-            return;
-        }
-        
-        const rect = this.canvas.getBoundingClientRect();
-        const x = e.clientX - rect.left;
-        
-        // Klick auf linker oder rechter Hälfte
-        if (x < this.canvas.width / 2) {
-            this.moveLeft();
-        } else {
-            this.moveRight();
-        }
-    }
-    
-    handleTouchStart = (e) => {
-        e.preventDefault();
-        
-        if (this.gameOver) {
-            this.reset();
-            return;
-        }
-        
-        const rect = this.canvas.getBoundingClientRect();
-        const touch = e.touches[0];
-        const x = touch.clientX - rect.left;
-        
-        // Touch auf linker oder rechter Hälfte
-        if (x < this.canvas.width / 2) {
-            this.moveLeft();
-        } else {
-            this.moveRight();
-        }
-    }
-    
-    handleKeyDown = (e) => {
-        if (this.gameOver) return;
-        
-        if (e.key === 'ArrowLeft' || e.key === 'a') {
-            this.moveLeft();
-        } else if (e.key === 'ArrowRight' || e.key === 'd') {
-            this.moveRight();
-        }
-    }
-    
-    moveLeft() {
-        if (this.player.targetLane > 0) {
-            this.player.targetLane--;
-            audioManager.playClickSound();
-        }
-    }
-    
-    moveRight() {
-        if (this.player.targetLane < this.lanes - 1) {
-            this.player.targetLane++;
-            audioManager.playClickSound();
-        }
-    }
-    
-    spawnObject() {
-        const lane = Math.floor(Math.random() * this.lanes);
-        const type = this.objectTypes[Math.floor(Math.random() * this.objectTypes.length)];
-        
-        this.fallingObjects.push({
-            x: this.laneWidth * lane + this.laneWidth / 2,
-            y: -50,
-            width: 50,
-            height: 50,
-            lane: lane,
-            emoji: type.emoji,
-            color: type.color,
-            points: type.points,
-            rotation: 0
-        });
-    }
-    
-    updateGame() {
-        if (this.gameOver) return;
-        
-        this.frameCount++;
-        
-        // Spawn neue Objekte
-        if (this.frameCount % this.spawnInterval === 0) {
-            this.spawnObject();
-        }
-        
-        // Spieler Bewegung (sanft zur Zielspur)
-        const targetX = this.laneWidth * this.player.targetLane + this.laneWidth / 2;
-        this.player.x += (targetX - this.player.x) * 0.2;
-        this.player.lane = this.player.targetLane;
-        
-        // Fallende Objekte bewegen
-        for (let i = this.fallingObjects.length - 1; i >= 0; i--) {
-            const obj = this.fallingObjects[i];
-            obj.y += this.objectSpeed;
-            obj.rotation += 0.02;
-            
-            // Kollision mit Spieler prüfen
-            if (this.checkCollision(this.player, obj)) {
-                this.handleCollision();
-                this.fallingObjects.splice(i, 1);
-                continue;
-            }
-            
-            // Objekt hat Bildschirm verlassen (erfolgreich ausgewichen)
-            if (obj.y > this.canvas.height) {
-                this.score += obj.points;
-                this.passedObjects++;
-                this.createPassParticles(obj.x, this.canvas.height - 50);
-                audioManager.playScoreSound();
-                this.fallingObjects.splice(i, 1);
-                
-                // Level-Up
-                if (this.passedObjects % 15 === 0 && this.level < this.maxLevel) {
-                    this.level++;
-                    this.updateLevelSettings();
-                    this.createLevelUpEffect();
-                }
-            }
-        }
-        
-        // Partikel aktualisieren
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.x += p.vx;
-            p.y += p.vy;
-            p.life -= 0.02;
-            
-            if (p.life <= 0) {
-                this.particles.splice(i, 1);
-            }
-        }
-    }
-    
-    checkCollision(player, obj) {
-        // Großzügige Kollisionserkennung
-        const playerLeft = player.x - player.width / 2 + 10;
-        const playerRight = player.x + player.width / 2 - 10;
-        const playerTop = player.y - player.height / 2 + 10;
-        const playerBottom = player.y + player.height / 2 - 10;
-        
-        const objLeft = obj.x - obj.width / 2;
-        const objRight = obj.x + obj.width / 2;
-        const objTop = obj.y - obj.height / 2;
-        const objBottom = obj.y + obj.height / 2;
-        
-        return playerLeft < objRight &&
-               playerRight > objLeft &&
-               playerTop < objBottom &&
-               playerBottom > objTop;
-    }
-    
-    handleCollision() {
-        this.gameOver = true;
-        this.highScore = Math.max(this.highScore, this.score);
-        
-        // Explosions-Partikel
-        this.createExplosionParticles(this.player.x, this.player.y);
-        audioManager.playGameOverSound();
-    }
-    
-    createPassParticles(x, y) {
-        for (let i = 0; i < 5; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 2 + Math.random() * 2;
-            this.particles.push({
-                x: x,
-                y: y,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed - 2,
-                life: 1,
-                color: '#10b981',
-                size: 3 + Math.random() * 3
+    generateStars() {
+        this.stars = [];
+        for (let i = 0; i < 100; i++) {
+            this.stars.push({
+                x: Math.random() * this.canvas.width,
+                y: Math.random() * this.canvas.height,
+                size: Math.random() * 2 + 0.5,
+                twinkle: Math.random() * Math.PI * 2,
+                speed: 0.02 + Math.random() * 0.03
             });
         }
     }
     
-    createExplosionParticles(x, y) {
-        for (let i = 0; i < 30; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 2 + Math.random() * 5;
+    handleMouseMove = (e) => {
+        if (this.gameOver) return;
+        const rect = this.canvas.getBoundingClientRect();
+        this.player.targetX = e.clientX - rect.left;
+    }
+    
+    handleTouchMove = (e) => {
+        if (this.gameOver) return;
+        e.preventDefault();
+        const rect = this.canvas.getBoundingClientRect();
+        this.player.targetX = e.touches[0].clientX - rect.left;
+    }
+    
+    handleClick = (e) => {
+        if (this.gameOver) {
+            this.restart();
+        }
+    }
+    
+    restart() {
+        this.player.x = this.canvas.width / 2;
+        this.player.targetX = this.player.x;
+        this.fallingObjects = [];
+        this.score = 0;
+        this.level = 1;
+        this.gameOver = false;
+        this.baseSpeed = 1;
+        this.spawnRate = 80;
+        this.spawnTimer = 0;
+        this.particles = [];
+        this.generateStars();
+    }
+    
+    spawnObject() {
+        const types = [
+            { emoji: '☄️', color: '#ff0055', size: 35 },
+            { emoji: '🌑', color: '#666', size: 40 },
+            { emoji: '💫', color: '#ffff00', size: 30 },
+            { emoji: '🛸', color: '#00ff88', size: 35 },
+            { emoji: '⚡', color: '#ff8800', size: 30 }
+        ];
+        
+        const type = types[Math.floor(Math.random() * types.length)];
+        
+        this.fallingObjects.push({
+            x: 30 + Math.random() * (this.canvas.width - 60),
+            y: -50,
+            width: type.size,
+            height: type.size,
+            speed: this.baseSpeed + Math.random() * 0.5,
+            emoji: type.emoji,
+            color: type.color,
+            rotation: 0,
+            rotationSpeed: (Math.random() - 0.5) * 0.1,
+            glow: Math.random() * Math.PI * 2
+        });
+    }
+    
+    update() {
+        if (this.gameOver) return;
+        
+        this.time += 0.016;
+        
+        // Spieler bewegen
+        this.player.x += (this.player.targetX - this.player.x) * 0.15;
+        this.player.x = Math.max(30, Math.min(this.canvas.width - 30, this.player.x));
+        
+        // Spawn
+        this.spawnTimer++;
+        if (this.spawnTimer >= this.spawnRate) {
+            this.spawnObject();
+            this.spawnTimer = 0;
+        }
+        
+        // Objekte fallen lassen
+        for (let i = this.fallingObjects.length - 1; i >= 0; i--) {
+            const obj = this.fallingObjects[i];
+            obj.y += obj.speed;
+            obj.rotation += obj.rotationSpeed;
+            obj.glow += 0.05;
+            
+            // Vorbei geflogen
+            if (obj.y > this.canvas.height + 50) {
+                this.fallingObjects.splice(i, 1);
+                this.score++;
+                this.createPassParticles();
+                
+                if (this.score % 10 === 0) {
+                    this.levelUp();
+                }
+                continue;
+            }
+            
+            // Kollision
+            const dx = Math.abs(obj.x - this.player.x);
+            const dy = Math.abs(obj.y - this.player.y);
+            if (dx < 30 && dy < 30) {
+                this.gameOver = true;
+                this.createExplosionParticles();
+                audioManager.playGameOverSound();
+                if (this.score > this.highScore) {
+                    this.highScore = this.score;
+                }
+            }
+        }
+    }
+    
+    levelUp() {
+        this.level++;
+        this.baseSpeed += 0.15;
+        this.spawnRate = Math.max(40, this.spawnRate - 3);
+        this.createLevelUpEffect();
+        audioManager.playLevelUpSound();
+    }
+    
+    createPassParticles() {
+        for (let i = 0; i < 8; i++) {
             this.particles.push({
-                x: x,
-                y: y,
+                x: this.canvas.width / 2 + (Math.random() - 0.5) * 100,
+                y: this.canvas.height - 30,
+                vx: (Math.random() - 0.5) * 3,
+                vy: -Math.random() * 3 - 1,
+                life: 1,
+                color: '#00ff88',
+                size: 4 + Math.random() * 4
+            });
+        }
+    }
+    
+    createExplosionParticles() {
+        for (let i = 0; i < 40; i++) {
+            const angle = (Math.PI * 2 * i) / 40;
+            const speed = 3 + Math.random() * 5;
+            this.particles.push({
+                x: this.player.x,
+                y: this.player.y,
                 vx: Math.cos(angle) * speed,
                 vy: Math.sin(angle) * speed,
                 life: 1,
-                color: ['#ef4444', '#f59e0b', '#fbbf24'][Math.floor(Math.random() * 3)],
-                size: 4 + Math.random() * 6
+                color: ['#ff0055', '#ff8800', '#ffff00'][Math.floor(Math.random() * 3)],
+                size: 5 + Math.random() * 6
             });
         }
     }
     
     createLevelUpEffect() {
-        for (let i = 0; i < 50; i++) {
-            const angle = Math.random() * Math.PI * 2;
-            const speed = 3 + Math.random() * 4;
+        for (let i = 0; i < 30; i++) {
             this.particles.push({
-                x: this.canvas.width / 2,
+                x: Math.random() * this.canvas.width,
                 y: this.canvas.height / 2,
-                vx: Math.cos(angle) * speed,
-                vy: Math.sin(angle) * speed,
+                vx: (Math.random() - 0.5) * 4,
+                vy: (Math.random() - 0.5) * 4,
                 life: 1,
-                color: ['#fbbf24', '#f59e0b', '#10b981'][Math.floor(Math.random() * 3)],
-                size: 5 + Math.random() * 5
+                color: '#ffff00',
+                size: 6 + Math.random() * 6
             });
         }
     }
     
     gameLoop = () => {
         if (!this.isRunning) return;
-        
-        this.updateGame();
+        this.update();
         this.render();
-        
         requestAnimationFrame(this.gameLoop);
     }
     
     render() {
-        // Hintergrund (Straße) - heller für bessere Sichtbarkeit
+        // 🌌 COSMIC HINTERGRUND
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#6b7280');
-        gradient.addColorStop(1, '#4b5563');
+        gradient.addColorStop(0, '#000020');
+        gradient.addColorStop(0.5, '#0a0040');
+        gradient.addColorStop(1, '#150050');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Grüne Seitenstreifen (Gras)
-        this.ctx.fillStyle = '#10b981';
-        this.ctx.fillRect(0, 0, 30, this.canvas.height);
-        this.ctx.fillRect(this.canvas.width - 30, 0, 30, this.canvas.height);
-        
-        // Straßenmarkierungen
-        this.ctx.strokeStyle = 'white';
-        this.ctx.lineWidth = 4;
-        this.ctx.setLineDash([20, 20]);
-        this.ctx.lineDashOffset = (this.frameCount * 3) % 40;
-        
-        for (let i = 1; i < this.lanes; i++) {
+        // Sterne
+        for (let star of this.stars) {
+            star.twinkle += star.speed;
+            const alpha = 0.3 + Math.sin(star.twinkle) * 0.4;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
             this.ctx.beginPath();
-            this.ctx.moveTo(this.laneWidth * i, 0);
-            this.ctx.lineTo(this.laneWidth * i, this.canvas.height);
-            this.ctx.stroke();
+            this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
+            this.ctx.fill();
         }
-        this.ctx.setLineDash([]);
         
-        // UI Oben
+        // Nebel-Effekte
         this.ctx.save();
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-        this.ctx.fillRect(0, 0, this.canvas.width, 80);
-        
-        // Level
-        this.ctx.fillStyle = '#fbbf24';
-        this.ctx.font = 'bold 24px sans-serif';
-        this.ctx.textAlign = 'left';
-        this.ctx.fillText(`Level ${this.level}`, 20, 30);
-        
-        // Score
-        this.ctx.fillStyle = '#10b981';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText(`Punkte: ${this.score}`, this.canvas.width / 2, 30);
-        
-        // High Score
-        this.ctx.fillStyle = '#ec4899';
-        this.ctx.textAlign = 'right';
-        this.ctx.fillText(`Beste: ${this.highScore}`, this.canvas.width - 20, 30);
-        
-        // Anweisungen
-        this.ctx.fillStyle = '#e5e7eb';
-        this.ctx.font = 'bold 18px sans-serif';
-        this.ctx.textAlign = 'center';
-        this.ctx.fillText('⬅️ Tippe links/rechts zum Ausweichen ➡️', this.canvas.width / 2, 60);
+        this.ctx.globalAlpha = 0.08;
+        for (let i = 0; i < 3; i++) {
+            const y = (this.time * 20 + i * 200) % (this.canvas.height + 200) - 100;
+            const grad = this.ctx.createRadialGradient(
+                this.canvas.width / 2 + Math.sin(this.time + i) * 100, y,
+                0, this.canvas.width / 2, y, 200
+            );
+            grad.addColorStop(0, '#ff00ff');
+            grad.addColorStop(1, 'transparent');
+            this.ctx.fillStyle = grad;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        }
         this.ctx.restore();
         
-        // Fallende Objekte zeichnen
+        // Fallende Objekte
         for (let obj of this.fallingObjects) {
             this.ctx.save();
             this.ctx.translate(obj.x, obj.y);
             this.ctx.rotate(obj.rotation);
             
-            // Heller Hintergrund für bessere Sichtbarkeit
-            const gradient = this.ctx.createRadialGradient(0, 0, 0, 0, 0, obj.width * 0.8);
-            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.95)');
-            gradient.addColorStop(0.7, 'rgba(255, 255, 255, 0.7)');
-            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
-            this.ctx.fillStyle = gradient;
+            // Glow
+            const glowIntensity = 15 + Math.sin(obj.glow) * 8;
+            this.ctx.shadowColor = obj.color;
+            this.ctx.shadowBlur = glowIntensity;
+            
+            // Hintergrund
+            const grad = this.ctx.createRadialGradient(0, 0, 0, 0, 0, obj.width / 2);
+            grad.addColorStop(0, obj.color);
+            grad.addColorStop(1, 'rgba(0,0,0,0.5)');
+            this.ctx.fillStyle = grad;
             this.ctx.beginPath();
-            this.ctx.arc(0, 0, obj.width * 0.8, 0, Math.PI * 2);
+            this.ctx.arc(0, 0, obj.width / 2, 0, Math.PI * 2);
             this.ctx.fill();
-            
-            // Weißer Kreis als Hintergrund
-            this.ctx.fillStyle = 'white';
-            this.ctx.beginPath();
-            this.ctx.arc(0, 0, obj.width * 0.55, 0, Math.PI * 2);
-            this.ctx.fill();
-            
-            // Farbiger Rand
-            this.ctx.strokeStyle = obj.color;
-            this.ctx.lineWidth = 4;
-            this.ctx.stroke();
-            
-            // Schatten
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.3)';
-            this.ctx.shadowBlur = 15;
-            this.ctx.shadowOffsetY = 8;
             
             // Emoji
-            this.ctx.font = `${obj.width * 0.7}px Arial`;
+            this.ctx.shadowBlur = 0;
+            this.ctx.font = `${obj.width * 0.8}px Arial`;
             this.ctx.textAlign = 'center';
             this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(obj.emoji, 0, 0);
+            this.ctx.fillText(obj.emoji, 0, 2);
             
             this.ctx.restore();
         }
         
-        // Spieler zeichnen
-        this.ctx.save();
-        this.ctx.translate(this.player.x, this.player.y);
-        
+        // Spieler
         if (!this.gameOver) {
-            // Schatten
-            this.ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-            this.ctx.shadowBlur = 15;
-            this.ctx.shadowOffsetY = 8;
+            this.ctx.save();
+            this.player.glow = (this.player.glow || 0) + 0.05;
+            const glowIntensity = 20 + Math.sin(this.player.glow) * 10;
             
-            // Glow-Effekt
-            const glow = this.ctx.createRadialGradient(0, 0, 0, 0, 0, this.player.width);
-            glow.addColorStop(0, 'rgba(59, 130, 246, 0.8)');
-            glow.addColorStop(1, 'rgba(59, 130, 246, 0)');
-            this.ctx.fillStyle = glow;
+            this.ctx.translate(this.player.x, this.player.y);
+            
+            // Glow
+            this.ctx.shadowColor = '#00ffff';
+            this.ctx.shadowBlur = glowIntensity;
+            
+            // Körper
+            const playerGrad = this.ctx.createRadialGradient(0, -10, 0, 0, 0, 30);
+            playerGrad.addColorStop(0, '#88ffff');
+            playerGrad.addColorStop(0.5, '#00ffff');
+            playerGrad.addColorStop(1, '#0088aa');
+            
+            this.ctx.fillStyle = playerGrad;
             this.ctx.beginPath();
-            this.ctx.arc(0, 0, this.player.width, 0, Math.PI * 2);
+            this.ctx.moveTo(0, -30);
+            this.ctx.lineTo(25, 30);
+            this.ctx.lineTo(-25, 30);
+            this.ctx.closePath();
             this.ctx.fill();
             
-            // Emoji
-            this.ctx.font = `${this.player.width}px Arial`;
+            // Cockpit
+            this.ctx.shadowBlur = 0;
+            this.ctx.fillStyle = '#003344';
+            this.ctx.beginPath();
+            this.ctx.ellipse(0, -5, 10, 12, 0, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Auge
+            this.ctx.fillStyle = '#00ffff';
+            this.ctx.beginPath();
+            this.ctx.arc(0, -6, 4, 0, Math.PI * 2);
+            this.ctx.fill();
+            
+            // Triebwerke
+            this.ctx.fillStyle = '#ff8800';
+            this.ctx.shadowColor = '#ff8800';
+            this.ctx.shadowBlur = 15;
+            const flicker = Math.random() * 5 + 10;
+            this.ctx.beginPath();
+            this.ctx.moveTo(-15, 30);
+            this.ctx.lineTo(-10, 30 + flicker);
+            this.ctx.lineTo(-5, 30);
+            this.ctx.closePath();
+            this.ctx.fill();
+            this.ctx.beginPath();
+            this.ctx.moveTo(5, 30);
+            this.ctx.lineTo(10, 30 + flicker);
+            this.ctx.lineTo(15, 30);
+            this.ctx.closePath();
+            this.ctx.fill();
+            
+            this.ctx.restore();
+        }
+        
+        // Partikel
+        for (let i = this.particles.length - 1; i >= 0; i--) {
+            const p = this.particles[i];
+            p.x += p.vx; p.y += p.vy; p.life -= 0.02;
+            
+            if (p.life > 0) {
+                this.ctx.fillStyle = p.color;
+                this.ctx.shadowColor = p.color;
+                this.ctx.shadowBlur = 10;
+                this.ctx.globalAlpha = p.life;
+                this.ctx.beginPath();
+                this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+                this.ctx.fill();
+                this.ctx.globalAlpha = 1;
+                this.ctx.shadowBlur = 0;
+            } else {
+                this.particles.splice(i, 1);
+            }
+        }
+        
+        // UI
+        this.ctx.save();
+        
+        // Level
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 20;
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.font = 'bold 24px "Fredoka One", sans-serif';
+        this.ctx.textAlign = 'left';
+        this.ctx.fillText(`⚡ Level ${this.level}`, 20, 35);
+        
+        // Score
+        this.ctx.shadowColor = '#ffff00';
+        this.ctx.fillStyle = '#ffff00';
+        this.ctx.fillText(`⭐ ${this.score}`, 20, 65);
+        
+        // High Score
+        if (this.highScore > 0) {
+            this.ctx.shadowColor = '#00ff88';
+            this.ctx.fillStyle = '#00ff88';
+            this.ctx.font = 'bold 18px sans-serif';
+            this.ctx.fillText(`🏆 ${this.highScore}`, 20, 90);
+        }
+        
+        // Anleitung
+        if (!this.gameOver && this.score < 3) {
+            this.ctx.shadowColor = '#00ffff';
+            this.ctx.fillStyle = '#00ffff';
+            this.ctx.font = 'bold 22px sans-serif';
             this.ctx.textAlign = 'center';
-            this.ctx.textBaseline = 'middle';
-            this.ctx.fillText(this.player.emoji, 0, 0);
+            this.ctx.fillText('👆 Bewege das Schiff! 👆', this.canvas.width / 2, 50);
         }
         
         this.ctx.restore();
         
-        // Partikel zeichnen
-        for (let p of this.particles) {
-            this.ctx.fillStyle = p.color;
-            this.ctx.globalAlpha = p.life;
-            this.ctx.beginPath();
-            this.ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
-        this.ctx.globalAlpha = 1;
-        
-        // Game Over Bildschirm
+        // Game Over
         if (this.gameOver) {
-            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+            this.ctx.fillStyle = 'rgba(0, 0, 0, 0.85)';
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
             
-            this.ctx.fillStyle = '#ef4444';
-            this.ctx.font = 'bold 48px sans-serif';
+            this.ctx.save();
+            this.ctx.shadowColor = '#ff0055';
+            this.ctx.shadowBlur = 40;
+            this.ctx.fillStyle = '#ff0055';
+            this.ctx.font = 'bold 44px "Fredoka One", sans-serif';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('💥 Autsch! 💥', this.canvas.width / 2, this.canvas.height / 2 - 60);
+            this.ctx.fillText('💥 BUMM! 💥', this.canvas.width / 2, this.canvas.height / 2 - 60);
             
-            this.ctx.fillStyle = '#fbbf24';
+            this.ctx.shadowColor = '#ffff00';
+            this.ctx.fillStyle = '#ffff00';
             this.ctx.font = 'bold 32px sans-serif';
-            this.ctx.fillText(`Punkte: ${this.score}`, this.canvas.width / 2, this.canvas.height / 2);
+            this.ctx.fillText(`⭐ ${this.score} Punkte`, this.canvas.width / 2, this.canvas.height / 2);
             
-            this.ctx.fillStyle = '#e5e7eb';
-            this.ctx.font = 'bold 24px sans-serif';
-            this.ctx.fillText('Tippe zum Neustarten', this.canvas.width / 2, this.canvas.height / 2 + 60);
+            this.ctx.shadowColor = '#ff00ff';
+            this.ctx.fillStyle = '#ff00ff';
+            this.ctx.font = 'bold 26px sans-serif';
+            this.ctx.fillText(`⚡ Level ${this.level}`, this.canvas.width / 2, this.canvas.height / 2 + 45);
+            
+            this.ctx.shadowColor = '#00ffff';
+            this.ctx.fillStyle = '#00ffff';
+            this.ctx.font = 'bold 20px sans-serif';
+            this.ctx.fillText('Tippe zum Neustarten', this.canvas.width / 2, this.canvas.height / 2 + 100);
+            this.ctx.restore();
         }
     }
 }
-
