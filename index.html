@@ -2,13 +2,14 @@
 <html lang="de-CH">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>Matteo's Spielplatz - v2024.11.20</title>
-    <link rel="stylesheet" href="style.css">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>🚀 Matteo's Spielplatz - Cosmic Arcade</title>
+    <link rel="stylesheet" href="style.css?v=cosmic-2024">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#3b82f6">
+    <meta name="theme-color" content="#0a0a1a">
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
     <meta http-equiv="Expires" content="0">
@@ -16,45 +17,45 @@
     <link rel="icon" type="image/png" href="https://i.postimg.cc/dQr5ZBY0/Chat-GPT-Image-2-Nov-2025-08-57-55.png">
 </head>
 <body>
-    <!-- PIN-Sperrbildschirm -->
+    <!-- 🔒 PIN-Sperrbildschirm -->
     <div id="lock-screen" class="screen active">
         <div class="lock-container">
-            <div class="lock-icon">🔒</div>
-            <h2 class="lock-title">Eltern-Code eingeben</h2>
-            <p class="lock-subtitle">Bitte gib den 4-stelligen Code ein</p>
-            <input type="password" id="pin-input" class="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="____">
-            <button id="pin-submit" class="pin-button">Bestätigen</button>
+            <div class="lock-icon">🔐</div>
+            <h2 class="lock-title">Geheimer Code</h2>
+            <p class="lock-subtitle">Gib den 4-stelligen Eltern-Code ein</p>
+            <input type="password" id="pin-input" class="pin-input" maxlength="4" pattern="[0-9]*" inputmode="numeric" placeholder="• • • •">
+            <button id="pin-submit" class="pin-button">🚀 Bestätigen</button>
             <div id="pin-error" class="pin-error"></div>
         </div>
     </div>
 
-    <!-- Eltern-Dashboard -->
+    <!-- ⚙️ Eltern-Dashboard -->
     <div id="parent-screen" class="screen">
         <div class="parent-container">
-            <h2 class="parent-title">⚙️ Eltern-Einstellungen</h2>
+            <h2 class="parent-title">⚙️ Mission Control</h2>
             <p class="parent-subtitle">Wähle die Spielzeit für dein Kind:</p>
             
             <div class="time-buttons">
                 <button class="time-button" data-minutes="5">
-                    <span class="time-emoji">⏱️</span>
+                    <span class="time-emoji">⚡</span>
                     <span class="time-text">5 Minuten</span>
                 </button>
                 <button class="time-button" data-minutes="10">
-                    <span class="time-emoji">⏰</span>
+                    <span class="time-emoji">🌟</span>
                     <span class="time-text">10 Minuten</span>
                 </button>
                 <button class="time-button" data-minutes="15">
-                    <span class="time-emoji">🕐</span>
+                    <span class="time-emoji">🌙</span>
                     <span class="time-text">15 Minuten</span>
                 </button>
                 <button class="time-button" data-minutes="30">
-                    <span class="time-emoji">🕑</span>
+                    <span class="time-emoji">🌌</span>
                     <span class="time-text">30 Minuten</span>
                 </button>
             </div>
             
             <button id="start-play-button" class="start-play-button" disabled>
-                Spielzeit starten
+                🎮 Mission starten!
             </button>
             
             <div class="selected-time-display">
@@ -63,24 +64,24 @@
         </div>
     </div>
 
-    <!-- Zeit-Abgelaufen-Bildschirm -->
+    <!-- ⏰ Zeit-Abgelaufen-Bildschirm -->
     <div id="timeout-screen" class="screen">
         <div class="timeout-container">
-            <div class="timeout-icon">⏰</div>
-            <h2 class="timeout-title">Spielzeit vorbei!</h2>
+            <div class="timeout-icon">🛸</div>
+            <h2 class="timeout-title">Mission beendet!</h2>
             <p class="timeout-message">Das hat Spass gemacht! 🎉</p>
-            <p class="timeout-subtitle">Bitte Mama oder Papa fragen, um weiterzuspielen.</p>
+            <p class="timeout-subtitle">Frag Mama oder Papa für eine neue Mission!</p>
             
             <button id="ask-parent-button" class="ask-parent-button">
-                Um mehr Zeit bitten
+                👨‍👩‍👧 Um mehr Zeit bitten
             </button>
         </div>
     </div>
 
-    <!-- Eltern-Rätsel-Bildschirm -->
+    <!-- 🧮 Eltern-Rätsel-Bildschirm -->
     <div id="puzzle-screen" class="screen">
         <div class="puzzle-container">
-            <h2 class="puzzle-title">Nur für Erwachsene 🧮</h2>
+            <h2 class="puzzle-title">🧠 Erwachsenen-Test</h2>
             <p class="puzzle-subtitle">Löse diese Aufgabe:</p>
             
             <div id="puzzle-question" class="puzzle-question"></div>
@@ -91,7 +92,7 @@
         </div>
     </div>
 
-    <!-- Startbildschirm -->
+    <!-- 🏠 Startbildschirm -->
     <div id="menu" class="screen">
         <canvas id="menu-canvas" class="menu-background"></canvas>
         <div class="menu-container">
@@ -100,88 +101,100 @@
                     <span class="title-word">Matteo's</span>
                     <span class="title-word">Spielplatz</span>
                 </h1>
-                <p class="subtitle">Wähle dein Lieblingsspiel!</p>
+                <span class="title-emoji">🚀</span>
+                <p class="subtitle">✨ Wähle dein Abenteuer! ✨</p>
             </div>
             
             <div class="menu-buttons">
-                <button class="game-button color-game" data-game="colors">
+                <button class="game-button" data-game="colors">
                     <span class="emoji">🎨</span>
                     <div class="button-content">
                         <span class="button-title">Farben finden</span>
                         <span class="button-description">Finde alle gleichen Farben!</span>
                     </div>
                 </button>
-                <button class="game-button balloon-game" data-game="balloons">
+                
+                <button class="game-button" data-game="balloons">
                     <span class="emoji">🎈</span>
                     <div class="button-content">
                         <span class="button-title">Ballons platzen</span>
-                        <span class="button-description">Platze so viele wie du kannst!</span>
+                        <span class="button-description">Platze so viele wie möglich!</span>
                     </div>
                 </button>
-                <button class="game-button shape-game" data-game="shapes">
-                    <span class="emoji">🔺</span>
+                
+                <button class="game-button" data-game="shapes">
+                    <span class="emoji">🔷</span>
                     <div class="button-content">
                         <span class="button-title">Formen sortieren</span>
-                        <span class="button-description">Ziehe die Formen an den richtigen Ort!</span>
+                        <span class="button-description">Ziehe die Formen richtig!</span>
                     </div>
                 </button>
-                <button class="game-button maze-game" data-game="maze">
+                
+                <button class="game-button" data-game="maze">
                     <span class="emoji">🌀</span>
                     <div class="button-content">
-                        <span class="button-title">Labyrinth-Pfad</span>
-                        <span class="button-description">Finde den Weg zum Ziel!</span>
+                        <span class="button-title">Labyrinth</span>
+                        <span class="button-description">Finde den Weg!</span>
                     </div>
                 </button>
-                <button class="game-button memory-game" data-game="memory">
-                    <span class="emoji">🎴</span>
+                
+                <button class="game-button" data-game="memory">
+                    <span class="emoji">🃏</span>
                     <div class="button-content">
-                        <span class="button-title">Memory-Farben</span>
+                        <span class="button-title">Memory</span>
                         <span class="button-description">Finde alle Paare!</span>
                     </div>
                 </button>
-                <button class="game-button oddone-game" data-game="oddone">
+                
+                <button class="game-button" data-game="oddone">
                     <span class="emoji">🔍</span>
                     <div class="button-content">
-                        <span class="button-title">Finde den Unterschied</span>
-                        <span class="button-description">Welche Form ist anders?</span>
+                        <span class="button-title">Unterschied</span>
+                        <span class="button-description">Welche ist anders?</span>
                     </div>
                 </button>
-                <button class="game-button numbers-game" data-game="numbers">
+                
+                <button class="game-button" data-game="numbers">
                     <span class="emoji">🔢</span>
                     <div class="button-content">
-                        <span class="button-title">Zahlen entdecken</span>
-                        <span class="button-description">Tippe die Zahlen der Reihe nach!</span>
+                        <span class="button-title">Zahlen</span>
+                        <span class="button-description">Tippe der Reihe nach!</span>
                     </div>
                 </button>
-                <button class="game-button counting-game" data-game="counting">
+                
+                <button class="game-button" data-game="counting">
                     <span class="emoji">🐾</span>
                     <div class="button-content">
                         <span class="button-title">Tiere zählen</span>
                         <span class="button-description">Wie viele siehst du?</span>
                     </div>
                 </button>
-                <button class="game-button jumping-game" data-game="jumping">
+                
+                <button class="game-button" data-game="jumping">
                     <span class="emoji">🦘</span>
                     <div class="button-content">
-                        <span class="button-title">Spring über Blöcke</span>
+                        <span class="button-title">Hüpf-Spiel</span>
                         <span class="button-description">Tippe zum Springen!</span>
                     </div>
                 </button>
-                <button class="game-button music-game" data-game="music">
-                    <span class="emoji">🎵</span>
+                
+                <button class="game-button" data-game="music">
+                    <span class="emoji">🎹</span>
                     <div class="button-content">
                         <span class="button-title">Musik machen</span>
                         <span class="button-description">Spiele Instrumente!</span>
                     </div>
                 </button>
-                <button class="game-button dodging-game" data-game="dodging">
+                
+                <button class="game-button" data-game="dodging">
                     <span class="emoji">🚗</span>
                     <div class="button-content">
-                        <span class="button-title">Ausweichen!</span>
+                        <span class="button-title">Ausweichen</span>
                         <span class="button-description">Weiche den Autos aus!</span>
                     </div>
                 </button>
-                <button class="game-button claw-game" data-game="claw">
+                
+                <button class="game-button" data-game="claw">
                     <span class="emoji">🎪</span>
                     <div class="button-content">
                         <span class="button-title">Greifautomat</span>
@@ -189,22 +202,14 @@
                     </div>
                 </button>
             </div>
-            
-            <div class="menu-decoration">
-                <span class="deco-emoji">⭐</span>
-                <span class="deco-emoji">🌟</span>
-                <span class="deco-emoji">✨</span>
-                <span class="deco-emoji">🌈</span>
-                <span class="deco-emoji">🎉</span>
-            </div>
         </div>
     </div>
 
-    <!-- Spielbereich -->
+    <!-- 🎮 Spielbereich -->
     <div id="game-screen" class="screen">
         <div class="game-header">
             <button id="back-button" class="icon-button">← Zurück</button>
-            <div id="score-display" class="score">Punkte: <span id="score">0</span></div>
+            <div id="score-display" class="score">⭐ <span id="score">0</span></div>
             <div class="time-remaining">
                 ⏱️ <span id="time-remaining-value">--:--</span>
             </div>
@@ -213,33 +218,29 @@
         <div id="game-ui"></div>
     </div>
 
-    <!-- Erfolgsbildschirm -->
+    <!-- 🎉 Erfolgsbildschirm -->
     <div id="success-screen" class="screen overlay">
         <div class="success-container">
-            <h2 id="success-title">Super gemacht!</h2>
+            <h2 id="success-title">🎉 Super gemacht!</h2>
             <div id="confetti-canvas"></div>
-            <p id="success-message">Du bist toll!</p>
+            <p id="success-message">Du bist ein Star! ⭐</p>
             <div class="success-buttons">
-                <button id="replay-button" class="action-button primary">Nochmal spielen</button>
-                <button id="menu-button" class="action-button secondary">Zurück zum Menü</button>
+                <button id="replay-button" class="action-button primary">🔄 Nochmal spielen</button>
+                <button id="menu-button" class="action-button secondary">🏠 Zurück zum Menü</button>
             </div>
         </div>
     </div>
 
-    <script type="module" src="main.js?v=2024-11-20-fix"></script>
-    <script src="parental_control.js?v=2024-11-20-fix"></script>
+    <script type="module" src="main.js?v=cosmic-2024"></script>
+    <script src="parental_control.js?v=cosmic-2024"></script>
     
-    <!-- Service Worker Registrierung -->
+    <!-- Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/service-worker.js')
-                    .then((registration) => {
-                        console.log('✅ Service Worker registriert:', registration.scope);
-                    })
-                    .catch((error) => {
-                        console.log('❌ Service Worker Registrierung fehlgeschlagen:', error);
-                    });
+                    .then(reg => console.log('✅ SW registriert'))
+                    .catch(err => console.log('❌ SW Fehler:', err));
             });
         }
     </script>

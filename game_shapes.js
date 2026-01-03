@@ -561,32 +561,56 @@ export class ShapeGame {
     render = () => {
         if (!this.isRunning) return;
         
-        // Hintergrund
+        // 🌌 COSMIC HINTERGRUND
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#fef3c7');
-        gradient.addColorStop(1, '#fed7aa');
+        gradient.addColorStop(0, '#0a0a1a');
+        gradient.addColorStop(0.5, '#1a0a2e');
+        gradient.addColorStop(1, '#0a0a1a');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Level-Anzeige
-        this.ctx.fillStyle = '#7c2d12';
-        this.ctx.font = 'bold 28px sans-serif';
+        // Sterne
+        for (let i = 0; i < 60; i++) {
+            const x = (i * 73) % this.canvas.width;
+            const y = (i * 47) % this.canvas.height;
+            const opacity = 0.3 + Math.sin(Date.now() * 0.001 + i) * 0.3;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 1 + (i % 2), 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // Level-Anzeige mit Neon
+        this.ctx.save();
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.shadowBlur = 20;
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(`Level ${this.currentLevel}/${this.maxLevel}`, this.canvas.width / 2, 35);
+        this.ctx.restore();
         
         // Anweisung
-        this.ctx.fillStyle = '#78350f';
+        this.ctx.save();
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 15;
+        this.ctx.fillStyle = '#ff00ff';
         this.ctx.font = 'bold 22px sans-serif';
-        this.ctx.fillText('🔺 Ziehe jede Form in das richtige Feld! 🔺', this.canvas.width / 2, 65);
+        this.ctx.fillText('🔷 Ziehe jede Form in das richtige Feld! 🔷', this.canvas.width / 2, 65);
+        this.ctx.restore();
         
         // Fortschritt anzeigen
+        this.ctx.save();
+        this.ctx.shadowColor = '#00ff88';
+        this.ctx.shadowBlur = 15;
         this.ctx.font = 'bold 18px sans-serif';
-        this.ctx.fillStyle = '#10b981';
+        this.ctx.fillStyle = '#00ff88';
         this.ctx.fillText(
             `${this.completedShapes} von ${this.totalShapes} geschafft! 🌟`,
             this.canvas.width / 2,
             this.canvas.height - 20
         );
+        this.ctx.restore();
         
         // Drop-Zones zeichnen
         for (let zone of this.dropZones) {

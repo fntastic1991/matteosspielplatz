@@ -197,29 +197,52 @@ export class ColorGame {
     render = () => {
         if (!this.isRunning) return;
         
-        // Hintergrund
-        this.ctx.fillStyle = '#f8fafc';
+        // 🌌 COSMIC HINTERGRUND
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        gradient.addColorStop(0, '#0a0a1a');
+        gradient.addColorStop(0.5, '#1a0a2e');
+        gradient.addColorStop(1, '#0a0a1a');
+        this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Anweisung - größer und kindlicher
-        this.ctx.fillStyle = '#1e293b';
-        this.ctx.font = 'bold 28px sans-serif';
+        // Sterne im Hintergrund
+        for (let i = 0; i < 50; i++) {
+            const x = (i * 73) % this.canvas.width;
+            const y = (i * 47) % this.canvas.height;
+            const opacity = 0.3 + Math.sin(Date.now() * 0.001 + i) * 0.3;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 1 + (i % 2), 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        // Anweisung mit Neon-Effekt
+        this.ctx.save();
+        this.ctx.shadowColor = '#00ffff';
+        this.ctx.shadowBlur = 20;
+        this.ctx.fillStyle = '#00ffff';
+        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(
             `🎨 Finde alle ${this.targetColor.name}en Kreise! 🎨`, 
             this.canvas.width / 2, 
             40
         );
+        this.ctx.restore();
         
-        // Zähler anzeigen
+        // Zähler anzeigen mit Glow
         const remaining = this.circles.filter(c => c.isTarget && !c.collected).length;
+        this.ctx.save();
+        this.ctx.shadowColor = '#00ff88';
+        this.ctx.shadowBlur = 15;
         this.ctx.font = 'bold 22px sans-serif';
-        this.ctx.fillStyle = '#10b981';
+        this.ctx.fillStyle = '#00ff88';
         this.ctx.fillText(
             `Noch ${remaining} ${remaining === 1 ? 'Kreis' : 'Kreise'}!`,
             this.canvas.width / 2,
             75
         );
+        this.ctx.restore();
         
         // Kreise zeichnen
         for (let circle of this.circles) {

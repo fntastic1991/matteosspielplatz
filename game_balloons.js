@@ -238,31 +238,56 @@ export class BalloonGame {
             return;
         }
         
-        // Himmel-Hintergrund
+        // 🌌 COSMIC NACHT-HIMMEL
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#BFDBFE');
-        gradient.addColorStop(1, '#E0F2FE');
+        gradient.addColorStop(0, '#0a0a1a');
+        gradient.addColorStop(0.3, '#1a0a2e');
+        gradient.addColorStop(0.7, '#2e1065');
+        gradient.addColorStop(1, '#0a0a1a');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Wolken zeichnen und bewegen
-        for (let cloud of this.clouds) {
-            cloud.x += cloud.speed;
-            if (cloud.x > this.canvas.width + cloud.size) {
-                cloud.x = -cloud.size;
-            }
-            this.drawCloud(cloud.x, cloud.y, cloud.size);
+        // Animierte Sterne
+        for (let i = 0; i < 80; i++) {
+            const x = (i * 73 + Date.now() * 0.01) % this.canvas.width;
+            const y = (i * 47) % (this.canvas.height * 0.6);
+            const opacity = 0.3 + Math.sin(Date.now() * 0.002 + i) * 0.4;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${opacity})`;
+            this.ctx.beginPath();
+            this.ctx.arc(x, y, 1 + (i % 3), 0, Math.PI * 2);
+            this.ctx.fill();
         }
         
-        // Zeit-Anzeige
-        this.ctx.fillStyle = '#1e293b';
-        this.ctx.font = 'bold 28px sans-serif';
+        // Nebel-Effekte
+        const time = Date.now() * 0.0005;
+        this.ctx.fillStyle = `rgba(147, 51, 234, ${0.1 + Math.sin(time) * 0.05})`;
+        this.ctx.beginPath();
+        this.ctx.ellipse(this.canvas.width * 0.3, this.canvas.height * 0.4, 200, 100, time, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        this.ctx.fillStyle = `rgba(59, 130, 246, ${0.1 + Math.cos(time) * 0.05})`;
+        this.ctx.beginPath();
+        this.ctx.ellipse(this.canvas.width * 0.7, this.canvas.height * 0.3, 150, 80, -time, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Titel mit Neon-Effekt
+        this.ctx.save();
+        this.ctx.shadowColor = '#ff00ff';
+        this.ctx.shadowBlur = 25;
+        this.ctx.fillStyle = '#ff00ff';
+        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(`🎈 Platze die Ballons! 🎈`, this.canvas.width / 2, 35);
+        this.ctx.restore();
         
+        // Timer mit Glow
+        this.ctx.save();
+        this.ctx.shadowColor = '#ff6b6b';
+        this.ctx.shadowBlur = 20;
         this.ctx.font = 'bold 24px sans-serif';
-        this.ctx.fillStyle = '#ef4444';
+        this.ctx.fillStyle = '#ff6b6b';
         this.ctx.fillText(`⏰ Noch ${remaining} Sekunden!`, this.canvas.width / 2, 70);
+        this.ctx.restore();
         
         // Balloons bewegen und zeichnen
         for (let i = this.balloons.length - 1; i >= 0; i--) {

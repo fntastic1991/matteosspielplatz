@@ -442,44 +442,55 @@ export class MemoryGame {
     render = () => {
         if (!this.isRunning) return;
         
-        // Hintergrund mit Verlauf
+        // 🌌 COSMIC HINTERGRUND
         const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
-        gradient.addColorStop(0, '#fef3c7');
-        gradient.addColorStop(1, '#fde68a');
+        gradient.addColorStop(0, '#0a0a1a');
+        gradient.addColorStop(0.5, '#1a0a2e');
+        gradient.addColorStop(1, '#0a0a1a');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Dekorative Sterne
+        // Animierte Sterne
         for (let star of this.stars) {
-            star.opacity = Math.abs(Math.sin(Date.now() * 0.001 * star.speed));
-            this.ctx.fillStyle = `rgba(251, 146, 60, ${star.opacity * 0.3})`;
+            star.opacity = 0.3 + Math.abs(Math.sin(Date.now() * 0.001 * star.speed)) * 0.5;
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
             this.ctx.beginPath();
             this.ctx.arc(star.x, star.y, star.size, 0, Math.PI * 2);
             this.ctx.fill();
         }
         
-        // Titel
+        // Nebel-Effekte
+        const time = Date.now() * 0.0003;
+        this.ctx.fillStyle = `rgba(139, 92, 246, ${0.1 + Math.sin(time) * 0.05})`;
+        this.ctx.beginPath();
+        this.ctx.ellipse(this.canvas.width * 0.2, this.canvas.height * 0.7, 200, 100, time, 0, Math.PI * 2);
+        this.ctx.fill();
+        
+        // Titel mit Neon-Effekt
         this.ctx.save();
-        this.ctx.shadowColor = 'rgba(0, 0, 0, 0.1)';
-        this.ctx.shadowBlur = 5;
-        this.ctx.fillStyle = '#1e293b';
-        this.ctx.font = 'bold 28px sans-serif';
+        this.ctx.shadowColor = '#fbbf24';
+        this.ctx.shadowBlur = 25;
+        this.ctx.fillStyle = '#fbbf24';
+        this.ctx.font = 'bold 28px "Fredoka One", sans-serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('🎴 Finde alle Paare! 🎴', this.canvas.width / 2, 35);
+        this.ctx.fillText('🃏 Finde alle Paare! 🃏', this.canvas.width / 2, 35);
         this.ctx.restore();
         
-        // Info-Bereich
+        // Info-Bereich mit Glow
         this.ctx.save();
         const infoY = 70;
         
         // Züge
+        this.ctx.shadowColor = '#ff8800';
+        this.ctx.shadowBlur = 15;
         this.ctx.font = 'bold 20px sans-serif';
-        this.ctx.fillStyle = '#f97316';
+        this.ctx.fillStyle = '#ff8800';
         this.ctx.textAlign = 'center';
         this.ctx.fillText(`Züge: ${this.moves}`, this.canvas.width / 2 - 80, infoY);
         
         // Paare gefunden
-        this.ctx.fillStyle = '#10b981';
+        this.ctx.shadowColor = '#00ff88';
+        this.ctx.fillStyle = '#00ff88';
         this.ctx.fillText(`Paare: ${this.matchedPairs}/${this.totalPairs}`, this.canvas.width / 2 + 80, infoY);
         this.ctx.restore();
         

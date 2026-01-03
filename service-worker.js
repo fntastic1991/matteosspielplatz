@@ -1,6 +1,6 @@
 // service-worker.js - Offline-Unterstützung
 
-const CACHE_NAME = 'matteos-spielplatz-v5-fixed';
+const CACHE_NAME = 'cosmic-arcade-v1';
 const urlsToCache = [
   '/',
   '/index.html',
