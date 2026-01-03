@@ -1,6 +1,6 @@
 // service-worker.js - Offline-Unterstützung
 
-const CACHE_NAME = 'cosmic-arcade-v2-games';
+const CACHE_NAME = 'cosmic-arcade-v3-rockets';
 const urlsToCache = [
   '/',
   '/index.html',
@@ -20,6 +20,8 @@ const urlsToCache = [
   '/game_music.js',
   '/game_dodging.js',
   '/game_claw.js',
+  '/game_rocket.js',
+  '/game_spacerace.js',
   '/manifest.json',
   'https://i.postimg.cc/dQr5ZBY0/Chat-GPT-Image-2-Nov-2025-08-57-55.png',
   'https://i.postimg.cc/c4wXYJMt/Chat-GPT-Image-2-Nov-2025-08-13-57.png'

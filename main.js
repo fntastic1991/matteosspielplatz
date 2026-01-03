@@ -11,6 +11,8 @@ import { JumpingGame } from './game_jumping.js';
 import { MusicGame } from './game_music.js';
 import { DodgingGame } from './game_dodging.js';
 import { ClawGame } from './game_claw.js';
+import { RocketGame } from './game_rocket.js';
+import { SpaceRaceGame } from './game_spacerace.js';
 import { audioManager } from './audio_utils.js';
 
 // ========================================
@@ -380,6 +382,12 @@ class GameApp {
                 break;
             case 'claw':
                 this.currentGame = new ClawGame();
+                break;
+            case 'rocket':
+                this.currentGame = new RocketGame();
+                break;
+            case 'spacerace':
+                this.currentGame = new SpaceRaceGame();
                 break;
             default:
                 console.error('Unbekanntes Spiel:', gameType);
